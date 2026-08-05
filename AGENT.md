@@ -345,6 +345,23 @@ The agent should never silently change architectural decisions.
 
 --- 
 
+## Verification Philosophy
+
+Successful compilation is not considered sufficient verification.
+
+Whenever practical, verify behavior by exercising the implemented feature.
+
+Examples:
+
+- Toggle the theme.
+- Render sample content.
+- Parse invalid metadata.
+- Attempt failing cases.
+
+The objective is to validate behavior, not merely confirm that the project builds.
+
+---
+
 # Definition of Success
 
 Success is not measured by lines of code.

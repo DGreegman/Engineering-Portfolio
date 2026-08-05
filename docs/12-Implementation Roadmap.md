@@ -78,7 +78,7 @@ Establish a production-ready engineering foundation.
 * Dark/Light theme support
 * Git repository
 * Initial README
-* Environment validation
+* Environment validation will be introduced when the first project-specific environment variables are added (e.g. NEXT_PUBLIC_SITE_URL, analytics, email providers, API keys). Until then, no environment validation layer is necessary.
 * GitHub Actions (lint + typecheck + build)
 
 ## Definition of Done
