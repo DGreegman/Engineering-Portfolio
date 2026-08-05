@@ -1,0 +1,205 @@
+/**
+ * Typography Foundation
+ *
+ * Fonts: Geist Sans (--font-sans) + Geist Mono (--font-mono), configured in
+ * src/app/layout.tsx via next/font/google. See docs/10-Technical Architecture.md
+ * and Task 1.4 for rationale.
+ *
+ * This file defines the semantic type scale, the reading-width token, and
+ * base styles for code and Markdown/MDX content. It is imported once from
+ * src/app/globals.css. No components, layouts, or pages are defined here.
+ */
+
+@theme {
+  /* Semantic type scale. Each token bundles size + line-height + tracking +
+     weight so a single utility class (e.g. `text-h1`) fully expresses one
+     level of the hierarchy. Values are restrained and mathematically
+     related, per the Design System's "Engineering Precision" principle. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 700;
+
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h1--font-weight: 700;
+
+  --text-h2: 1.75rem;
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: 1.375rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--font-weight: 600;
+
+  --text-h4: 1.125rem;
+  --text-h4--line-height: 1.4;
+  --text-h4--font-weight: 600;
+
+  /* Generous line-height for long-form reading comfort (UX Guidelines:
+     "Reading Comes First"). */
+  --text-body: 1rem;
+  --text-body--line-height: 1.7;
+  --text-body--font-weight: 400;
+
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-small--font-weight: 400;
+
+  /* Slightly wider tracking suits small uppercase-leaning metadata labels. */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.02em;
+  --text-caption--font-weight: 500;
+
+  --text-code: 0.875rem;
+  --text-code--line-height: 1.6;
+  --text-code--font-weight: 400;
+
+  /* Reusable max reading width -> `max-w-reading`. 72ch sits in the
+     recommended 60-80 character measure for comfortable long-form reading
+     (UX Guidelines: "Content Width"). Not applied to any page here. */
+  --container-reading: 72ch;
+}
+
+/* Code typography. Prepares font, rhythm, and inline styling only —
+   syntax highlighting is deferred to a later milestone. */
+@layer base {
+  pre,
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    tab-size: 2;
+  }
+
+  pre,
+  pre code {
+    font-size: var(--text-code);
+    line-height: var(--text-code--line-height);
+  }
+
+  /* Inline code only — excludes code inside pre blocks.
+     Note: colors reference the raw tokens (--muted, --foreground), not the
+     --color-* aliases from the shadcn @theme inline block. --color-* is only
+     kept dynamic across .dark by Tailwind's own utility generator; in
+     hand-written CSS it resolves once at :root and won't follow .dark. */
+  :not(pre) > code {
+    background-color: var(--muted);
+    color: var(--foreground);
+    border-radius: var(--radius-sm);
+    padding-inline: 0.375em;
+    padding-block: 0.125em;
+    font-size: var(--text-code);
+  }
+}
+
+/* Markdown/MDX typography. Scoped to `.markdown` so a future content
+   renderer can opt in via className — no component is defined here. */
+@layer components {
+  .markdown {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    color: var(--foreground);
+  }
+
+  .markdown > * + * {
+    margin-top: 1.25em;
+  }
+
+  .markdown h1 {
+    font-size: var(--text-h1);
+    line-height: var(--text-h1--line-height);
+    letter-spacing: var(--text-h1--letter-spacing);
+    font-weight: var(--text-h1--font-weight);
+    margin-top: 2em;
+  }
+
+  .markdown h2 {
+    font-size: var(--text-h2);
+    line-height: var(--text-h2--line-height);
+    letter-spacing: var(--text-h2--letter-spacing);
+    font-weight: var(--text-h2--font-weight);
+    margin-top: 2em;
+  }
+
+  .markdown h3 {
+    font-size: var(--text-h3);
+    line-height: var(--text-h3--line-height);
+    font-weight: var(--text-h3--font-weight);
+    margin-top: 1.75em;
+  }
+
+  .markdown h4 {
+    font-size: var(--text-h4);
+    line-height: var(--text-h4--line-height);
+    font-weight: var(--text-h4--font-weight);
+    margin-top: 1.5em;
+  }
+
+  .markdown p {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  .markdown ul,
+  .markdown ol {
+    padding-inline-start: 1.5em;
+  }
+
+  .markdown ul {
+    list-style-type: disc;
+  }
+
+  .markdown ol {
+    list-style-type: decimal;
+  }
+
+  .markdown li + li {
+    margin-top: 0.5em;
+  }
+
+  .markdown li > ul,
+  .markdown li > ol {
+    margin-top: 0.5em;
+  }
+
+  .markdown blockquote {
+    border-inline-start: 2px solid var(--border);
+    padding-inline-start: 1em;
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+
+  .markdown a {
+    color: var(--primary);
+    text-underline-offset: 0.2em;
+    text-decoration-line: underline;
+  }
+
+  .markdown a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  .markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+    font-size: var(--text-small);
+  }
+
+  .markdown th,
+  .markdown td {
+    border: 1px solid var(--border);
+    padding: 0.5em 0.75em;
+    text-align: start;
+  }
+
+  .markdown th {
+    font-weight: 600;
+    background-color: var(--muted);
+  }
+}
