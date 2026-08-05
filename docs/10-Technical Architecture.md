@@ -34,24 +34,27 @@ Every technical decision should support these principles.
 # High-Level Architecture
 
 ```
-                    Visitors
-                        │
-                        ▼
-                 Next.js Application
-                        │
-        ┌───────────────┼────────────────┐
-        │               │                │
-        ▼               ▼                ▼
-   MDX Content      Search Index     Analytics
-        │
-        ▼
- Content Collections
-        │
-        ▼
- Static Assets + Metadata
-        │
-        ▼
-     Deployment (Vercel)
+Visitors
+    │
+    ▼
+Next.js Application
+    │
+ ┌──┼───────────────┐
+ │  │               │
+ ▼  ▼               ▼
+Content Engine   Search Index   Analytics
+    │
+    ▼
+MDX + Metadata
+    │
+    ▼
+Knowledge Graph
+    │
+    ▼
+Static Assets
+    │
+    ▼
+Vercel
 ```
 
 The portfolio should primarily function as a statically generated website enhanced with selective dynamic capabilities.

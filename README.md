@@ -14,6 +14,24 @@ The goal is simple:
 
 ---
 
+## Current Status
+
+✅ **Milestone 1 — Project Foundation: Complete**
+
+The engineering foundation has been established — Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, theming, the internal content engine, CI, and local quality gates are all in place and verified.
+
+**Current focus:** Milestone 2 — Application Shell.
+
+| Area                  | Status         |
+| ---------------------- | -------------- |
+| Strategy               | ✅ Complete     |
+| Design                 | ✅ Complete     |
+| Engineering Planning   | ✅ Complete     |
+| Milestone 1 — Foundation | ✅ Complete  |
+| Milestone 2 — Application Shell | 🚧 In Progress |
+
+---
+
 ## Philosophy
 
 This project follows a documentation-driven development approach.
@@ -54,17 +72,6 @@ Defines the technical architecture, content model, and implementation roadmap.
 * Shiki
 * Mermaid
 * Vercel
-
----
-
-## Current Status
-
-| Area                 | Status         |
-| -------------------- | -------------- |
-| Strategy             | ✅ Complete     |
-| Design               | ✅ Complete     |
-| Engineering Planning | ✅ Complete     |
-| Implementation       | 🚧 In Progress |
 
 ---
 
