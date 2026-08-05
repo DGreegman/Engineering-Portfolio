@@ -22,3 +22,6 @@ coverage
 # documentation (hand-authored; not auto-reformatted)
 *.md
 docs
+
+# local tool/editor settings
+.claude
