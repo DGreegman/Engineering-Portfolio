@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch/PR — new pushes shouldn't wait
+# behind stale ones. Keeps feedback fast, per this workflow's goal.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege default (docs/10-Technical Architecture.md "Security").
+# No job here needs to write to the repo or call the GitHub API.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10 # matches package.json's "packageManager" major version
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm" # caches the pnpm store, keyed on pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        # Fails if pnpm-lock.yaml is out of sync with package.json, instead
+        # of silently updating it in CI.
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Check formatting
+        run: pnpm run format:check
+
+      - name: Build
+        run: pnpm run build
+        # Validates the production build succeeds. This is quality
+        # assurance only — no deployment happens here.
