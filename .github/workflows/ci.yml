@@ -27,8 +27,10 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
-        with:
-          version: 10 # matches package.json's "packageManager" major version
+        # No `version` input on purpose: pnpm/action-setup@v6 errors if both
+        # this and package.json's "packageManager" field are set. Reading
+        # only from "packageManager" keeps CI and local dev pinned to the
+        # exact same pnpm version from one place.
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
