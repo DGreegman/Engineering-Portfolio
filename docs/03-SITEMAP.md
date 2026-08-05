@@ -22,17 +22,17 @@ If a page does not contribute to the visitor's understanding of the engineer, it
 
 # Navigation Structure
 
-Home
+Knowledge
 
-Works
+Work
 
-Engineering Journal
+Engineering Log
 
 About
 
-Now
-
-Contact
+Home is intentionally not a separate nav item — the wordmark links there.
+Now and Contact are not part of primary navigation (see their sections
+below).
 
 ---
 
@@ -50,14 +50,7 @@ The entire website should be discoverable in less than three clicks.
 
 /
 │
-├── Works
-│     ├── VaultPay
-│     ├── Haya
-│     ├── GoHunt
-|     ├── Cookeaze 
-│     └── NETS
-│
-├── Engineering Journal
+├── Knowledge
 │     ├── Backend
 │     ├── Security
 │     ├── System Design
@@ -68,11 +61,19 @@ The entire website should be discoverable in less than three clicks.
 │     ├── Career
 │     └── Teaching
 │
-├── About
+├── Work
+│     ├── VaultPay
+│     ├── Haya
+│     ├── GoHunt
+|     ├── Cookeaze 
+│     └── NETS
 │
-├── Now
+├── Engineering Log
 │
-└── Contact
+└── About
+
+Now and Contact sit outside the primary tree — Now is deferred (see
+"Future Expansion"), Contact is folded into About (see its section below).
 
 ---
 
@@ -106,7 +107,7 @@ Call to Action
 
 ---
 
-# Works
+# Work
 
 Purpose
 
@@ -123,7 +124,7 @@ Each Work should answer:
 - How was success measured?
 - What would be improved today?
 
-Works
+Case Studies
 
 VaultPay
 
@@ -135,15 +136,15 @@ NETS
 
 Cookeaze
 
-Future Works should follow the same structure.
+Future case studies should follow the same structure.
 
 ---
 
-# Engineering Journal
+# Knowledge
 
 Purpose
 
-Become the central repository for technical knowledge.
+Become the central repository for evergreen technical knowledge.
 
 Articles should be educational rather than promotional.
 
@@ -166,6 +167,33 @@ Career
 Teaching
 
 Future categories may be added without changing the site's structure.
+
+---
+
+# Engineering Log
+
+Purpose
+
+Chronicle engineering discoveries and lessons as they happen — dated,
+narrower, and more personal than a Knowledge article. Not a rewrite of an
+evergreen concept; a record of what was actually learned building
+something, when it happened, and what it cost.
+
+Each entry should surface:
+
+- What was the challenge?
+- What was the outcome?
+- What technologies were involved?
+
+Sections
+
+Recent Entries
+
+Archives
+
+Unlike Knowledge, entries aren't organized by fixed category — chronology
+is the primary structure. Future archival grouping (by year, by technology)
+may be added without changing the site's structure.
 
 ---
 
@@ -211,37 +239,10 @@ Tools
 
 Learning Roadmap
 
----
+Contact
 
-# Now
-
-Purpose
-
-Document current priorities.
-
-Inspired by the "Now" movement.
-
-Example content
-
-Current Works
-
-Current books
-
-Current learning
-
-Current experiments
-
-Current goals
-
-This page changes frequently.
-
----
-
-# Contact
-
-Purpose
-
-Provide a frictionless way to reach out.
+There is no standalone Contact page — this section is the frictionless
+way to reach out that a dedicated page used to provide.
 
 Include
 
@@ -271,6 +272,10 @@ Current year
 
 Portfolio version
 
+Since there's no standalone Contact page, the footer's social links
+(GitHub, LinkedIn, Email) double as the quick-contact path Contact used to
+provide.
+
 ---
 
 # URL Structure
@@ -289,29 +294,27 @@ Portfolio version
  
  /work/cookeaze
 
- /journal
+ /knowledge
 
- /journal/backend
+ /knowledge/backend
 
- /journal/security
+ /knowledge/security
 
- /journal/system-design
+ /knowledge/system-design
 
- /journal/go
+ /knowledge/go
 
- /journal/nodejs
+ /knowledge/nodejs
 
- /journal/architecture
+ /knowledge/architecture
 
- /journal/career
+ /knowledge/career
 
- /journal/teaching
+ /knowledge/teaching
+
+ /engineering-log
 
  /about
-
- /now
-
- /contact
 
 ---
 
@@ -320,6 +323,9 @@ Portfolio version
 The architecture should support additional pages without redesign.
 
 Possible additions
+
+Now (a personal "now page" documenting current priorities and focus —
+deferred until it's part of an active content milestone)
 
 Speaking
 

@@ -69,7 +69,10 @@
   --success: oklch(0.6 0.13 155);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* 0.62 (not the shadcn default 0.708) — computed at ~3.64:1 against
+     --background, clearing the ~3:1 WCAG AA minimum for focus-indicator /
+     non-text contrast (1.4.11, 2.4.11). At 0.708 this measured 2.59:1. */
+  --ring: oklch(0.62 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -130,15 +133,5 @@
   }
   html {
     @apply font-sans;
-  }
-
-  /* Subtle cross-fade on theme switch. Skipped entirely for users who
-     prefer reduced motion — no flashy or forced animation. */
-  @media (prefers-reduced-motion: no-preference) {
-    body {
-      transition:
-        background-color 150ms ease,
-        color 150ms ease;
-    }
   }
 }

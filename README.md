@@ -16,11 +16,11 @@ The goal is simple:
 
 ## Current Status
 
-✅ **Milestone 1 — Project Foundation: Complete**
+✅ **Milestone 2 — Application Shell: Complete**
 
-The engineering foundation has been established — Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, theming, the internal content engine, CI, and local quality gates are all in place and verified.
+The engineering foundation (Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, theming, content engine, CI) and the Application Shell — the workspace layout system, the shared navigation framework, and the Header, Sidebar, and Footer built on top of it — are all in place, reviewed, and verified.
 
-**Current focus:** Milestone 2 — Application Shell.
+**Current focus:** Milestone 3 — Content Engine.
 
 | Area                  | Status         |
 | ---------------------- | -------------- |
@@ -28,7 +28,7 @@ The engineering foundation has been established — Next.js (App Router), TypeSc
 | Design                 | ✅ Complete     |
 | Engineering Planning   | ✅ Complete     |
 | Milestone 1 — Foundation | ✅ Complete  |
-| Milestone 2 — Application Shell | 🚧 In Progress |
+| Milestone 2 — Application Shell | ✅ Complete |
 
 ---
 
