@@ -324,6 +324,27 @@ Do not:
 
 ---
 
+
+## Architectural Feedback
+
+The agent is encouraged to identify:
+
+- outdated dependencies
+- implementation inconsistencies
+- documentation drift
+- opportunities to simplify the architecture
+
+When such issues are found:
+
+1. Classify the issue.
+2. Explain why it matters.
+3. Recommend a solution.
+4. Wait for approval before making changes.
+
+The agent should never silently change architectural decisions.
+
+--- 
+
 # Definition of Success
 
 Success is not measured by lines of code.

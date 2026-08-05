@@ -151,7 +151,7 @@ MDX enables:
 
 ## Content Processing
 
-Content Collections
+Internal content engine (`lib/content/`) — a lightweight, library-agnostic set of utilities built on MDX, gray-matter, and Zod, rather than a generated-output framework (e.g. Contentlayer or the `@content-collections/*` package).
 
 Responsible for:
 
@@ -354,9 +354,9 @@ public/
 
 scripts/
 
-contentlayer/
-
 ```
+
+Content is processed by an internal, library-agnostic content engine (`lib/content/`) built on MDX and Zod rather than a generated-output framework (e.g. Contentlayer), so there is no separate `contentlayer/` build directory to track.
 
 Responsibilities should remain clearly separated.
 
