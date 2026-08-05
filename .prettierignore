@@ -1,0 +1,24 @@
+# dependencies
+node_modules
+
+# build outputs
+.next
+out
+build
+
+# generated
+next-env.d.ts
+*.tsbuildinfo
+
+# package manager
+pnpm-lock.yaml
+
+# vercel
+.vercel
+
+# testing
+coverage
+
+# documentation (hand-authored; not auto-reformatted)
+*.md
+docs
