@@ -110,7 +110,9 @@ Reason:
 * Accessible
 * Customizable
 * Not opinionated
-* Built on Radix UI
+* Built on Base UI
+
+Base UI is the primitive library (MUI/Radix authors), chosen over Radix UI as of the shadcn CLI v4 default (July 2026) to track community adoption and ongoing upstream investment. Radix remains a supported alternative; this is a deliberate choice, not a fallback.
 
 Components should remain project-owned.
 
