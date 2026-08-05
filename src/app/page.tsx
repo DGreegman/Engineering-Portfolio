@@ -1,8 +1,15 @@
+import { Section } from "@/components/layout/section";
+import { Stack } from "@/components/layout/stack";
+
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-2 p-16 text-center">
-      <h1 className="text-2xl font-semibold">Engineering Portfolio</h1>
-      <p className="text-muted-foreground">Project initialization complete.</p>
-    </main>
+    <Section>
+      <Stack gap="xs">
+        <h1 className="text-h1">Engineering Portfolio</h1>
+        <p className="text-muted-foreground">
+          Project initialization complete.
+        </p>
+      </Stack>
+    </Section>
   );
 }
