@@ -8,10 +8,17 @@ The format is inspired by *Keep a Changelog* and follows Semantic Versioning whe
 
 ## [Unreleased]
 
+### Added
+
+* Workspace layout system — `WorkspaceLayout` shell, `Container`/`Section`/`Stack` primitives, and the width/spacing token system every page inherits
+* Shared navigation framework — a single `NavigationItem` model, active-path/active-item logic, and hooks consumed by every nav-aware component
+* Workspace Header — brand, primary navigation, theme toggle, GitHub link, and Search/RSS placeholders
+* Workspace Sidebar — context-aware navigation per top-level section, native collapsible groups
+* Workspace Footer — closing message, Explore/Connect/Workspace Metadata sections
+* Navigation IA aligned to Knowledge / Work / Engineering Log / About, per the Roadmap and Technical Architecture
+
 ### Planned
 
-* Initial application foundation
-* Application shell
 * MDX content engine
 * Component library
 * Knowledge pages
