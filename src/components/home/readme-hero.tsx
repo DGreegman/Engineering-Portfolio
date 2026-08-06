@@ -53,16 +53,22 @@ function TerminalSnippet() {
 
 export function ReadmeHero() {
   return (
-    // width="wide" matches Header/Footer's PageContainer (both max-w-7xl)
-    // so the hero's left edge lines up with the wordmark and footer content
-    // above/below it. The text itself is still capped at max-w-reading
-    // below so lines don't stretch to the full wide measure.
+    // width="full": WorkspaceLayout now wraps every page's sidebar/main
+    // row in one shared PageContainer (max-w-7xl, same px-4/6/8 gutter
+    // Header/Footer use) so the hero's left edge lines up with the
+    // wordmark and footer content above/below it — an inner "wide"
+    // Container here would double that gutter instead. On sidebar-less
+    // routes like this one the empty <aside> collapses to zero width
+    // (lg:empty:hidden), so the shared container spans the full viewport
+    // exactly as this section's own "wide" Container used to. The text
+    // itself is still capped at max-w-reading below so lines don't
+    // stretch to the full measure.
     //
     // The snapshot's track (24rem) is deliberately narrower than the
     // README's 1fr track, not an even split — the README stays the
     // visually larger, primary column; the snapshot is sized for a
     // presence that reads as "companion," not "equal."
-    <Section spacing="md" width="wide">
+    <Section spacing="md" width="full">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <Stack gap="lg" className="max-w-reading">
           <p className="font-mono text-caption text-muted-foreground">

@@ -104,7 +104,9 @@ export function EngineeringCaseStudies({
   caseStudies: CaseStudyEntry[];
 }) {
   return (
-    <Section spacing="md" width="wide">
+    // width="full" — WorkspaceLayout supplies the shared PageContainer
+    // for every page now; see readme-hero.tsx's comment for why.
+    <Section spacing="md" width="full">
       <Stack gap="lg">
         <Stack gap="xs" className="max-w-reading">
           <h2 className="text-h2 text-foreground">{CASE_STUDIES_COPY.title}</h2>

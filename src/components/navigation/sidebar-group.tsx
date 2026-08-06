@@ -8,6 +8,13 @@
  * with no custom JS or ARIA plumbing. Items render through the existing
  * `NavLink` (src/components/navigation/nav-link.tsx), reusing Task 2.3's
  * active-state logic rather than re-deriving it.
+ *
+ * Renders nothing for an empty group rather than a "Coming soon" filler —
+ * `getSidebarSections` (lib/navigation/sidebar-config.ts) already filters
+ * these out before they reach `Sidebar`, so this is a defensive fallback,
+ * not the primary mechanism, for the case of a mixed list where some
+ * groups have real items and others don't yet (Task 4.1 design refinement
+ * #1: no placeholders in permanent navigation).
  */
 import { Stack } from "@/components/layout/stack";
 import { NavLink } from "@/components/navigation/nav-link";
@@ -18,6 +25,8 @@ type SidebarGroupProps = {
 };
 
 export function SidebarGroup({ section }: SidebarGroupProps) {
+  if (section.items.length === 0) return null;
+
   return (
     <details open className="group">
       {/* Default marker suppressed (inconsistent across browsers, and
@@ -28,17 +37,13 @@ export function SidebarGroup({ section }: SidebarGroupProps) {
       </summary>
 
       <div className="mt-3">
-        {section.items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Coming soon</p>
-        ) : (
-          <Stack gap="xs" as="ul">
-            {section.items.map((item) => (
-              <li key={item.href}>
-                <NavLink item={item} />
-              </li>
-            ))}
-          </Stack>
-        )}
+        <Stack gap="xs" as="ul">
+          {section.items.map((item) => (
+            <li key={item.href}>
+              <NavLink item={item} />
+            </li>
+          ))}
+        </Stack>
       </div>
     </details>
   );

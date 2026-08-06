@@ -40,7 +40,9 @@ import { HOW_I_THINK_COPY } from "@/lib/constants/homepage-copy";
 
 export function HowIThink() {
   return (
-    <Section spacing="md" width="wide">
+    // width="full" — WorkspaceLayout supplies the shared PageContainer
+    // for every page now; see readme-hero.tsx's comment for why.
+    <Section spacing="md" width="full">
       <Stack gap="xl">
         <Stack gap="xs" className="max-w-prose">
           <h2 className="text-h2 text-foreground">{HOW_I_THINK_COPY.title}</h2>

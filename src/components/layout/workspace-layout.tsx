@@ -10,6 +10,34 @@
  * components exist (Milestone 2 continues by passing them in here — the
  * shape of this component does not need to change).
  *
+ * The sidebar/main row is wrapped in the same `PageContainer` (max-w-7xl,
+ * centered, same px-4/6/8 gutter) `Header`/`Footer` each wrap themselves in
+ * independently — not a second, differently-sized container. Before this,
+ * `<aside>`+`<main>` sized themselves against the *full* viewport while
+ * `Header`/`Footer` also centered independently against that same full
+ * viewport width: two same-max-width containers centered over different
+ * available widths (viewport vs. viewport-minus-sidebar) land at different
+ * left edges on basically every real viewport size, not just an edge case
+ * — see Task 4.1's alignment fix. Sharing one container makes `<aside>`'s
+ * left edge and `Header`'s brand's left edge the same box's left edge by
+ * construction.
+ *
+ * Because of this, **every** page's top-level `Section`s should pass
+ * `width="full"` (opting out of `Section`'s own inner `Container`) rather
+ * than `width="wide"` — this outer container now supplies the width
+ * constraint and gutter once for the whole row, on every route, whether or
+ * not that route's `<aside>` ends up populated. (`sidebar` is always a
+ * truthy `<Sidebar />` element here — root layout.tsx mounts it
+ * unconditionally — so this component can't branch on "does this route
+ * have a sidebar" itself; `Sidebar` resolves that client-side per
+ * `usePathname()` and, when empty, `lg:empty:hidden` collapses `<aside>`
+ * to zero width, at which point this shared container spans the full
+ * viewport exactly as each page's own "wide" Container used to on
+ * sidebar-less routes. All existing `home/*.tsx` sections were updated to
+ * `width="full"` alongside this change — an inner `Container` anywhere
+ * under `<main>` would double the gutter and reintroduce the same kind of
+ * mismatch this fixes.)
+ *
  * `header` is rendered bare — unlike `footer`/`sidebar`, this component does
  * not wrap it in its own `<header>` tag. `Header` (navigation/header.tsx)
  * owns that landmark itself, with its sticky/border/background styling
@@ -25,6 +53,8 @@
  * docs/12-Implementation Roadmap.md (Milestone 2 — Application Shell).
  */
 import * as React from "react";
+
+import { PageContainer } from "@/components/layout/container";
 
 type WorkspaceLayoutProps = {
   /** Site header (src/components/navigation/header.tsx). */
@@ -68,9 +98,9 @@ function WorkspaceLayout({
 
       {header}
 
-      <div
+      <PageContainer
         data-slot="workspace-body"
-        className="flex flex-1 flex-col lg:flex-row"
+        className="flex flex-1 flex-col lg:flex-row lg:gap-8"
       >
         {sidebarPosition === "start" && aside}
         <main
@@ -81,7 +111,7 @@ function WorkspaceLayout({
           {children}
         </main>
         {sidebarPosition === "end" && aside}
-      </div>
+      </PageContainer>
 
       {footer && <footer data-slot="workspace-footer">{footer}</footer>}
     </div>

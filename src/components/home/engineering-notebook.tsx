@@ -90,7 +90,9 @@ export function EngineeringNotebook({
   articles: NotebookArticle[];
 }) {
   return (
-    <Section spacing="md" width="wide">
+    // width="full" — WorkspaceLayout supplies the shared PageContainer
+    // for every page now; see readme-hero.tsx's comment for why.
+    <Section spacing="md" width="full">
       <Stack gap="lg">
         <Stack gap="xs" className="max-w-prose">
           <h2 className="text-h2 text-foreground">
