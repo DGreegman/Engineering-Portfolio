@@ -3,14 +3,23 @@
  *
  * The workspace header: brand, primary navigation, and a small set of
  * global actions. Rendered into `WorkspaceLayout`'s `header` slot
- * (src/components/layout/workspace-layout.tsx), which already supplies
- * the `<header>` landmark — this component's own root is a plain `div`.
+ * (src/components/layout/workspace-layout.tsx) — this component owns the
+ * `<header>` landmark itself (that component renders it bare, unwrapped).
+ *
+ * The `<header>` tag is the sticky element directly, not a `<div>` inside
+ * a separately-wrapped `<header>`. It used to be the latter, but a
+ * wrapping element exactly as tall as its sticky child gives the sticky
+ * positioning nowhere to actually stick — scrolling past the header meant
+ * scrolling past its containing block at the same instant, so it never
+ * held its position (confirmed in Chrome desktop, not a browser quirk).
+ * One `<header>`, sticky itself, fixes it — its containing block is now
+ * `WorkspaceLayout`'s page-spanning wrapper, which is actually taller than
+ * it.
  *
  * A Server Component: `NavLink` and `ThemeToggle` are the only client
- * islands it renders. Sticky positioning and the hairline border live
- * here, not on `WorkspaceLayout` — that component stays visually
- * opinion-free by design (Task 2.1); a sticky, bordered header is this
- * component's own presentation choice.
+ * islands it renders. Sticky positioning and the hairline border are this
+ * component's own presentation choice — `WorkspaceLayout` stays visually
+ * opinion-free by design (Task 2.1).
  *
  * See docs/09-Component Specification.md ("Header") and
  * docs/07-DESIGN_SYSTEM.md ("Calm Interfaces" — no shadow, no blur, one
@@ -28,7 +37,10 @@ import { GITHUB_URL } from "@/lib/constants/site";
 
 export function Header() {
   return (
-    <div className="sticky top-0 z-40 border-b border-border bg-background">
+    <header
+      data-slot="workspace-header"
+      className="sticky top-0 z-40 border-b border-border bg-background"
+    >
       <PageContainer>
         <div className="flex h-14 items-center justify-between gap-4">
           {/* Understated by design: the workspace's owner, not its focal
@@ -66,6 +78,10 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
+              // This renders an <a>, not a <button> — tell Base UI so it
+              // stops assuming native-button semantics on an element that
+              // doesn't have them (see Task 3.1's Base UI console warning).
+              nativeButton={false}
               render={
                 <a
                   href={GITHUB_URL}
@@ -81,6 +97,6 @@ export function Header() {
           </div>
         </div>
       </PageContainer>
-    </div>
+    </header>
   );
 }

@@ -10,6 +10,16 @@
  * components exist (Milestone 2 continues by passing them in here — the
  * shape of this component does not need to change).
  *
+ * `header` is rendered bare — unlike `footer`/`sidebar`, this component does
+ * not wrap it in its own `<header>` tag. `Header` (navigation/header.tsx)
+ * owns that landmark itself, with its sticky/border/background styling
+ * applied directly to it. Wrapping a sticky element in another element
+ * that's exactly its own height leaves no room for it to actually stick —
+ * the wrapper's box scrolls past at the same instant the sticky element
+ * would, so it never gets to hold its position. `Header`'s containing
+ * block needs to be this component's own (page-spanning) wrapper, not a
+ * second box sized to fit only the header.
+ *
  * This is a Server Component: pure structure, no client interactivity.
  * See docs/10-Technical Architecture.md ("Rendering Strategy") and
  * docs/12-Implementation Roadmap.md (Milestone 2 — Application Shell).
@@ -56,7 +66,7 @@ function WorkspaceLayout({
         Skip to content
       </a>
 
-      {header && <header data-slot="workspace-header">{header}</header>}
+      {header}
 
       <div
         data-slot="workspace-body"

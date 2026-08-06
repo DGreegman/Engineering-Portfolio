@@ -49,22 +49,92 @@ Working tree clean
 
 ---
 
-# Current Focus
+## Current Workspace
 
-## Title
+### Title
 
-Currently Exploring
+Current Workspace
 
-## Description
+---
 
-Technology evolves constantly, and so should engineers. These are the areas I'm actively learning, experimenting with, and deepening my understanding of.
-
-## Items
+### Currently Exploring
 
 - Distributed Systems
 - Cloud Architecture
 - Security Engineering
 - AI Engineering
+
+---
+
+### Currently Building
+
+Engineering Portfolio
+
+---
+
+### Latest Thought
+
+Documentation is part of engineering.
+
+---
+
+### Currently Reading
+
+Designing Data-Intensive Applications
+
+---
+
+### Notes
+
+This card represents the current state of the workspace.
+
+The content should be configuration-driven and easy to update.
+
+It should feel like a notebook lying beside the engineer's desk rather than a dashboard.
+
+Avoid metrics, progress bars, or decorative widgets.
+
+---
+
+# Current Exploring
+
+## Title
+
+Currently Exploring
+
+---
+
+## Introduction
+
+Technology evolves constantly, and so should engineers.
+
+These are the areas I'm actively exploring, building, and thinking about. They represent where my curiosity is leading me today—not a checklist of completed skills.
+
+---
+
+## Focus Areas
+
+### Distributed Systems
+
+Designing reliable systems that continue to perform as they grow in scale, complexity, and traffic.
+
+---
+
+### Cloud Architecture
+
+Learning how to build resilient, observable, and cost-effective infrastructure for modern applications.
+
+---
+
+### Security Engineering
+
+Understanding how to design systems where security is considered from the very beginning, not added later.
+
+---
+
+### AI Engineering
+
+Exploring practical ways AI can improve software development, developer workflows, and engineering productivity.
 
 ---
 
@@ -74,41 +144,131 @@ Technology evolves constantly, and so should engineers. These are the areas I'm 
 
 How I Think
 
+---
+
 ## Introduction
 
-The tools we use will change, but good engineering principles tend to last. These ideas shape how I approach every project I build.
+Technology changes. Frameworks come and go. But good engineering principles tend to last.
+
+These are the ideas that shape how I approach every system I design, every problem I solve, and every engineering decision I make.
+
+---
 
 ## Principles
 
-- Simplicity over complexity.
-- Reliability before cleverness.
-- Documentation is part of engineering.
-- Security is a feature, not an afterthought.
-- Learn publicly. Teach generously.
+### Simplicity over Complexity
+
+The best systems are often the easiest to understand.
+
+I prefer solutions that remain simple, maintainable, and predictable before introducing additional complexity.
 
 ---
 
-# Knowledge Preview
+### Reliability before Cleverness
 
-## Title
+Software should be dependable before it is impressive.
 
-Latest Knowledge
-
-## Description
-
-Engineering concepts, architecture decisions, backend development, security, cloud, and everything I'm learning along the way.
+A reliable system that engineers can trust will always outlast a clever solution that nobody understands.
 
 ---
 
-# Featured Work
+### Documentation is Part of Engineering
+
+Writing the code is only part of the work.
+
+If future engineers cannot understand why a system exists or how it works, the engineering isn't finished.
+
+---
+
+### Security is a Design Decision
+
+Security shouldn't be something added at the end of development.
+
+It should influence architecture, APIs, data handling, and infrastructure from the very beginning.
+
+---
+
+### Learn Publicly
+
+Every article, engineering log, and case study on this site exists because teaching is one of the best ways to learn.
+
+Teaching is one of the best ways to deepen understanding.
+
+---
+
+# Engineering Notebook
 
 ## Title
+
+Engineering Notebook
+
+---
+
+## Introduction
+
+Ideas become clearer when they're written down.
+
+This notebook contains engineering concepts, architecture decisions, backend development, security, cloud computing, and lessons learned while building real systems.
+
+Every article exists to answer a question, explore a trade-off, or explain an engineering decision.
+
+---
+
+## Section Label
+
+Recently Added
+
+---
+
+## Empty State
+
+Knowledge articles will appear here.
+
+Until then, the notebook is waiting for its first entry.
+
+---
+
+## Primary Action
+
+Browse All Knowledge →
+
+---
+
+# Engineering Case Studies
+
+## Title
+
+Engineering Case Studies
+
+---
+
+## Introduction
+
+Every project tells a story.
+
+These case studies explore the problems, constraints, architectural decisions, trade-offs, and lessons behind the systems I've built.
+
+Rather than showing what I built, they explain why it was built that way.
+
+---
+
+## Section Label
 
 Featured Work
 
-## Description
+---
 
-A collection of engineering case studies that go beyond screenshots to explain the problems, trade-offs, architecture, and decisions behind each project.
+## Empty State
+
+Case studies will appear here as new systems are documented.
+
+Every case study focuses on engineering decisions rather than project showcases.
+
+---
+
+## Primary Action
+
+View All Case Studies →
 
 ---
 
@@ -118,30 +278,56 @@ A collection of engineering case studies that go beyond screenshots to explain t
 
 Engineering Log
 
-## Description
+---
 
-A chronological record of experiments, discoveries, lessons learned, and ideas worth remembering. Think of it as my engineering notebook.
+## Introduction
+
+Engineering is a continuous process of learning, experimenting, and refining ideas.
+
+This log captures the journey behind the finished work—small discoveries, lessons learned, architectural experiments, debugging sessions, and ideas that are still evolving.
+
+Not every entry becomes an article or a case study, but every entry represents progress.
 
 ---
 
-# Meet the Engineer
+## Section Label
+
+Recent Log Entries
+
+---
+
+## Empty State
+
+The first engineering log entries will appear here as the workspace grows.
+
+---
+
+## Primary Action
+
+View Engineering Log →
+
+---
+
+# Beyond the Code
 
 ## Title
 
-Meet the Engineer
-
-## Description
-
-I'm Gracious Obeagu, a Backend Engineer passionate about building reliable systems, understanding how things work, and sharing that knowledge with others.
-
-I believe engineering is as much about thinking clearly and communicating ideas as it is about writing code.
+Beyond the Code
 
 ---
 
-# Footer
+## Introduction
 
-## Closing Message
+Every system tells a story, but so does the person who builds it.
 
-Built with curiosity.
+I'm a backend engineer who enjoys understanding how systems work, why architectural decisions matter, and how thoughtful engineering can solve real problems.
 
-See you in the next commit.
+Writing, documenting, and teaching are extensions of that curiosity. Sharing what I learn helps me refine my own thinking while hopefully making someone else's path a little clearer.
+
+This workspace is a reflection of that journey. It's where ideas become notes, notes become systems, and systems become lessons worth sharing.
+
+---
+
+## Primary Action
+
+Let's Connect →
