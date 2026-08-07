@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DIFFICULTIES } from "@/types/content";
+import { TOPIC_SLUGS } from "@/lib/content/topics";
 
 export const difficultySchema = z.enum(DIFFICULTIES);
 
@@ -31,6 +32,34 @@ export const articleFrontmatterSchema = z.object({
   author: z.string().optional(),
 });
 export type ArticleFrontmatter = z.infer<typeof articleFrontmatterSchema>;
+
+/**
+ * `topic` — Task 4.3.1's "Required Schema Dependency: `topic`"
+ * (docs/20-ARTICLE_EXPERIENCE.md). Required, singular, controlled
+ * vocabulary (`TOPIC_SLUGS`), independent of `tags`: `tags` are free-form
+ * and multi-valued (docs/11-Content Model.md's Tag Model — "represent
+ * concepts... power filtering and discovery"); `topic` answers a different
+ * question — "which single shelf does this document live on?" — the same
+ * way a physical book has exactly one call number even if it's
+ * cross-referenced under several subject headings.
+ */
+export const topicSchema = z.enum(TOPIC_SLUGS);
+
+/**
+ * Frontmatter for knowledge/ content specifically — extends
+ * `articleFrontmatterSchema` with the required `topic` field rather than
+ * adding `topic` to the shared schema directly, since `work/` (case
+ * studies) and `engineering-log/` entries also use
+ * `articleFrontmatterSchema` (see collections.ts) and aren't "located"
+ * within one of the eight knowledge topics the way an evergreen article
+ * is — requiring `topic` on those collections too would misapply a
+ * knowledge-library-specific concept to content that isn't part of the
+ * knowledge library.
+ */
+export const knowledgeFrontmatterSchema = articleFrontmatterSchema.extend({
+  topic: topicSchema,
+});
+export type KnowledgeFrontmatter = z.infer<typeof knowledgeFrontmatterSchema>;
 
 /**
  * Frontmatter for series/ entries. A series is a container that groups

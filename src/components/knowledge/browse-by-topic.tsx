@@ -12,42 +12,20 @@
  * render until the Content Engine can compute a real one (see
  * `placeholder-topics.ts`'s docstring — no fabricated numbers today).
  *
- * Each tile is a single whole-tile `<Link>` rather than the stretched-link
- * pattern used elsewhere on this page: a tile has no other interactive
- * content inside it, so there's no nested-interactive-element problem to
- * work around, and one real anchor covering the whole tile is simpler.
+ * The tile itself is `TopicTile` (extracted to its own file in Task 4.2) —
+ * `RelatedTopics` on topic pages reuses it verbatim rather than
+ * re-implementing the same tile with a second, differently-sized list.
  *
  * Fully data-agnostic: `topics` is a required prop, same pattern as every
  * other section on this page.
  *
  * A Server Component: static content, no interactivity.
  */
-import Link from "next/link";
-
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
+import { TopicTile } from "@/components/knowledge/topic-tile";
 import { BROWSE_BY_TOPIC_COPY } from "@/lib/constants/knowledge-copy";
 import type { Topic } from "@/lib/constants/placeholder-topics";
-
-function TopicTile({ topic }: { topic: Topic }) {
-  return (
-    <Link
-      href={topic.href}
-      className="block h-full rounded-lg border border-border p-5 transition-colors duration-150 hover:border-foreground/30 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
-    >
-      <Stack gap="xs">
-        <h3 className="text-h4 text-foreground">{topic.title}</h3>
-        <p className="text-small text-muted-foreground">{topic.description}</p>
-        {typeof topic.articleCount === "number" && (
-          <p className="text-caption text-muted-foreground/70">
-            {topic.articleCount}{" "}
-            {topic.articleCount === 1 ? "article" : "articles"}
-          </p>
-        )}
-      </Stack>
-    </Link>
-  );
-}
 
 export function BrowseByTopic({ topics }: { topics: Topic[] }) {
   return (

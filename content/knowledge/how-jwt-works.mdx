@@ -1,0 +1,127 @@
+---
+title: "How JWT Works"
+description: "Why do JWTs exist, and what problem do they actually solve?"
+topic: "security"
+publishedAt: "2026-08-07"
+tags: ["jwt", "authentication", "tokens"]
+difficulty: "beginner"
+---
+
+## Introduction
+
+Every request to a backend that requires a logged-in user has to answer the same question: who is this, and how do we know they're telling the truth?
+
+The classic answer is a session: the server picks a random ID, stores it alongside the user's identity in a database, and hands the ID to the browser as a cookie. Every request after that, the server looks the ID up. Simple, and for a single server talking to a single database, it works well.
+
+JSON Web Tokens exist because that lookup becomes a liability the moment "a single server" stops being true.
+
+## The Problem
+
+Once there's more than one server — behind a load balancer, split across regions, or calling out to other services — a session ID is only useful if every one of those servers can reach the same session store. That means a network round trip, on every authenticated request, just to confirm someone is who they say they are.
+
+That round trip is the cost a JWT is designed to remove. Instead of a random ID that means nothing without a database lookup, a JWT carries the claim itself — "this is user 4231, and it expires at this time" — signed in a way that lets any server verify it without asking anyone else.
+
+## The Core Concept
+
+A JWT is a small, signed claim about who someone is, structured so that verifying it doesn't require a database.
+
+That's the whole idea. Everything else — the specific format, the algorithms, the libraries — exists to make that one property (verify without a lookup) practical and hard to forge.
+
+## Visual Model
+
+A JWT is three base64url-encoded segments joined by dots:
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MjMxIiwiZXhwIjoxNzU0NTIwMDAwfQ.dBjftJeZ4CVP-mB92K
+└──────── header ────────┘ └──────────── payload ────────────┘ └─── signature ───┘
+```
+
+- **Header** — which algorithm signed this token (e.g. `HS256`).
+- **Payload** — the actual claims: who this is (`sub`), when it expires (`exp`), and whatever else the issuer decided to include.
+- **Signature** — the header and payload, run through the algorithm from the header, using a secret only the issuer knows.
+
+The header and payload are just base64 — readable by anyone, not encrypted. The signature is what makes the token trustworthy: change one character of the payload, and the signature no longer matches.
+
+## Implementation
+
+### Issuing a Token
+
+When a user logs in successfully, the server builds a payload, signs it, and hands the result back:
+
+```ts
+import jwt from "jsonwebtoken";
+
+const token = jwt.sign(
+  { sub: user.id, role: user.role },
+  process.env.JWT_SECRET,
+  { expiresIn: "15m" },
+);
+```
+
+The secret never leaves the server. Nothing about the token itself is secret — its security comes entirely from the fact that only the server holding `JWT_SECRET` could have produced a valid signature for a given payload.
+
+### Verifying a Token
+
+Every subsequent request presents the token, usually in an `Authorization: Bearer <token>` header. Verifying it is a single, local operation:
+
+```ts
+try {
+  const claims = jwt.verify(token, process.env.JWT_SECRET);
+  // claims.sub, claims.role are now trustworthy
+} catch {
+  // signature invalid, or the token has expired
+}
+```
+
+No database call. No network round trip. That's the entire value proposition — the rest of this article is about what that trade-off costs.
+
+## Trade-offs
+
+**Advantages**
+
+- No lookup on every request — any server holding the secret can verify a token independently.
+- Naturally suited to distributed systems: services don't need to share a session store.
+- The payload can carry enough context (role, permissions) to avoid a second query entirely.
+
+**Disadvantages**
+
+- **Revocation is hard.** A session can be deleted from the database instantly. A JWT is valid until it expires, full stop — there's no built-in way to invalidate one early without reintroducing the lookup you were trying to avoid.
+- **Size.** A JWT is meaningfully larger than a session ID, and it travels on every request.
+- **Anything in the payload is public.** Base64 is not encryption; never put secrets or sensitive data in a JWT payload.
+
+**Alternatives**
+
+- Traditional server-side sessions, when revocation matters more than avoiding a lookup.
+- Opaque tokens (a random string, looked up server-side, but _not_ self-describing) — session-like revocation with token-like transport.
+- Short-lived JWTs paired with a refresh token, which is itself checked against a store — a common middle ground that bounds how long a compromised token stays valid.
+
+**When not to use it**
+
+If a system needs to end a specific user's access immediately — a compromised account, a fired employee — a pure JWT approach makes that hard. That's usually the deciding factor, more than performance.
+
+## Common Mistakes
+
+**Assuming JWTs are encrypted.** They're signed, not encrypted. Anyone can decode the payload and read it; they just can't modify it without invalidating the signature. Treat the payload as public.
+
+**Trusting the `alg` header.** Early JWT libraries would verify a token using whatever algorithm the token itself claimed, including `alg: none`. An attacker could submit an unsigned token and have it accepted as valid. Modern libraries default to rejecting this, but it's worth confirming a library pins the expected algorithm rather than trusting the token to declare it.
+
+**Storing tokens in `localStorage`.** It's convenient and it's readable by any script running on the page — including an injected one, if the site has an XSS vulnerability anywhere. An `httpOnly` cookie isn't readable by JavaScript at all, which removes that entire attack surface.
+
+**Skipping expiration entirely.** A JWT with no `exp` claim is valid forever. Short expiration windows, paired with a refresh flow, keep a leaked token's usefulness bounded.
+
+## Real-world Examples
+
+OAuth 2.0's bearer tokens are commonly implemented as JWTs — an access token a client presents to a resource server, which verifies it without calling back to the authorization server. Identity platforms like Auth0 and Firebase Authentication issue JWTs for exactly the reasons described above: a mobile app or browser can hold a token and call several independent backend services, none of which need to share a session store.
+
+## Key Takeaways
+
+- A JWT trades a database lookup for a cryptographic signature — verify locally, instead of asking a session store.
+- That trade only makes sense when independent verification matters more than instant revocation.
+- The payload is readable by anyone; only the signature is protected. Never put secrets in it.
+- Short expiration times, and a deliberate plan for revocation, are what make JWTs safe to use in practice.
+
+## Related Learning
+
+JWTs answer _authentication_ — confirming who someone is. They don't, by themselves, answer _authorization_ — what that person is allowed to do once confirmed. Those are related but genuinely separate concerns, worth understanding as two different problems rather than one.
+
+Browse more of the [Security topic](/knowledge/security) for related reading on authentication, authorization, and secure-by-default engineering.

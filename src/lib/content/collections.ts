@@ -3,6 +3,7 @@ import type { z } from "zod";
 import type { CollectionKey, ContentType } from "@/types/content";
 import {
   articleFrontmatterSchema,
+  knowledgeFrontmatterSchema,
   seriesFrontmatterSchema,
   technologyFrontmatterSchema,
 } from "./schema";
@@ -27,7 +28,11 @@ interface CollectionConfig {
 export const COLLECTIONS: Record<CollectionKey, CollectionConfig> = {
   knowledge: {
     dir: path.join(CONTENT_ROOT, "knowledge"),
-    schema: articleFrontmatterSchema,
+    // knowledgeFrontmatterSchema, not the shared articleFrontmatterSchema —
+    // knowledge/ is the only collection whose entries carry a required
+    // `topic` (Task 4.3.1). See schema.ts's docstring on
+    // knowledgeFrontmatterSchema for why work/ and engineering-log/ don't.
+    schema: knowledgeFrontmatterSchema,
     type: "evergreen",
   },
   work: {
