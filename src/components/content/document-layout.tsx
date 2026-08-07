@@ -23,23 +23,37 @@
  *
  * Two different reasons a slot can be empty, handled two different ways:
  *
- * - **Not built yet** (`tableOfContents`, `relatedLearning`,
- *   `previousNext` today): renders a dashed-border `PlaceholderRegion`
- *   labeled with the region's name — an honest "this is coming" signal,
- *   not a silent gap, while the task that owns it hasn't shipped.
+ * - **Not built yet** (`relatedLearning`, `previousNext` today): renders a
+ *   dashed-border `PlaceholderRegion` labeled with the region's name — an
+ *   honest "this is coming" signal, not a silent gap, while the task that
+ *   owns it hasn't shipped.
  * - **Legitimately absent for this document** (`seriesBanner`, once Task
- *   4.3.3 shipped a real one): renders nothing at all, no placeholder —
- *   most articles were never going to be part of a series, so treating
- *   that as an unfinished region to flag would be wrong, not honest. This
- *   was a bug caught by actually publishing an article and looking at it,
- *   not by re-reading the code: `how-jwt-works.mdx` has no `series`, and
- *   the page was showing a "Series Banner Region" placeholder box anyway,
- *   left over from before Task 4.3.3's real `SeriesBanner` existed.
- * - `breadcrumb`/`header`/`body` keep their placeholder fallback as a
- *   defensive-only path — every real article resolves a topic (required
- *   by schema) and has body content, so these should never actually be
- *   empty; the placeholder exists to make it obvious if that assumption
- *   is ever wrong, not because emptiness is expected.
+ *   4.3.3 shipped a real one; `tableOfContents`'s *content*, once Task
+ *   4.3.5 shipped `TableOfContents`): renders nothing visible, no
+ *   placeholder — most articles were never going to be part of a series,
+ *   and a short article can legitimately have no h2-h4 headings, so
+ *   treating either as an unfinished region to flag would be wrong, not
+ *   honest. The two slots get there differently: `seriesBanner`'s whole
+ *   `Section` is conditionally omitted below, so an absent series leaves
+ *   no trace in the DOM at all; `tableOfContents` still renders its
+ *   `Section`/`SidebarContainer` wrapper unconditionally (touching that
+ *   would mean modifying `DocumentContainer`'s structure, Task 4.3.2's,
+ *   which this task doesn't own) — `TableOfContents` itself just returns
+ *   `null` into it when `headings` is empty, leaving an empty `<aside>`
+ *   landmark rather than none. Harmless (nothing for a screen reader to
+ *   announce inside it) and a smaller compromise than changing layout
+ *   structure a different task owns. `seriesBanner`'s version of this was
+ *   a bug caught by actually publishing an article and looking at it, not
+ *   by re-reading the code: `how-jwt-works.mdx` has no `series`, and the
+ *   page was showing a "Series Banner Region" placeholder box anyway, left
+ *   over from before Task 4.3.3's real `SeriesBanner` existed.
+ * - `breadcrumb`/`header`/`body`/`tableOfContents` keep their placeholder
+ *   fallback as a defensive-only path — every real article resolves a
+ *   topic (required by schema) and has body content, and the route always
+ *   passes a `TableOfContents` element (never leaves the prop unset), so
+ *   none of these should actually hit their fallback; it exists to make it
+ *   obvious if that assumption is ever wrong, not because emptiness is
+ *   expected.
  *
  * No `authorFooter` slot: this task's own "Document Structure" region list
  * doesn't include one (`docs/20`'s Information Architecture does, as the

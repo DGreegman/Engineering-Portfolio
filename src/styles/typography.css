@@ -64,8 +64,18 @@
   --container-reading: 72ch;
 }
 
-/* Code typography. Prepares font, rhythm, and inline styling only —
-   syntax highlighting is deferred to a later milestone. */
+/* Code typography: font, rhythm, inline styling, and (Task 4.3.6) the
+   Shiki dual-theme wiring — the two rules below are the only thing that
+   picks a color out of the `--shiki-light`/`--shiki-dark` pair every
+   highlighted token carries (`lib/content/highlight.ts`'s `defaultColor:
+   false`), keyed off the same `.dark` class every other themed color in
+   this codebase already switches on. Scoped to `.shiki-tokens span`
+   (the class `code-block.tsx` puts on its highlighted `<code>`), not a
+   bare `code span`, so this can't accidentally match some unrelated
+   `<span>` a future component nests inside a `<code>` element. The
+   `inherit` fallback covers the one case with no `--shiki-*` variables at
+   all: an unhighlighted (`plaintext`) fallback block, which should take
+   the surrounding text color rather than render blank. */
 @layer base {
   pre,
   code,
@@ -73,6 +83,14 @@
   samp {
     font-family: var(--font-mono);
     tab-size: 2;
+  }
+
+  .shiki-tokens span {
+    color: var(--shiki-light, inherit);
+  }
+
+  .dark .shiki-tokens span {
+    color: var(--shiki-dark, inherit);
   }
 
   pre,

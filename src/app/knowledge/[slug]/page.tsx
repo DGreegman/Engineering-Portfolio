@@ -21,10 +21,14 @@
  * Step 2 renders `DocumentLayout` — Task 4.3.2's structural skeleton for
  * the Engineering Article experience (`components/content/document-layout.tsx`)
  * — with its `breadcrumb`/`header`/`seriesBanner` slots filled by Task
- * 4.3.3's Document Header work, and now `body` filled by Task 4.3.4's MDX
- * rendering (`ArticleBody`). `tableOfContents`/`relatedLearning`/
- * `previousNext` stay unset (still Task 4.3.2's placeholders): TOC
- * generation and navigation are Tasks 4.3.5 and 4.3.8/4.3.9, not this one.
+ * 4.3.3's Document Header work, `body` filled by Task 4.3.4's MDX
+ * rendering (`ArticleBody`), and now `tableOfContents` filled by Task
+ * 4.3.5's Reading Navigation. `extractHeadings(article.body)` runs exactly
+ * once here — its result is handed to both `TableOfContents` (the nav
+ * list) and `ArticleBody` (matching heading `id`s), so there is one
+ * heading extraction per request, not two. `relatedLearning`/
+ * `previousNext` stay unset (still Task 4.3.2's placeholders): Tasks
+ * 4.3.8/4.3.9, not this one.
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -39,6 +43,8 @@ import { Breadcrumb } from "@/components/navigation/breadcrumb";
 import { DocumentHeader } from "@/components/content/document-header";
 import { SeriesBanner } from "@/components/content/series-banner";
 import { ArticleBody } from "@/components/content/article-body";
+import { TableOfContents } from "@/components/content/table-of-contents";
+import { extractHeadings } from "@/lib/content/toc";
 import {
   PLACEHOLDER_TOPICS,
   type Topic,
@@ -165,11 +171,10 @@ export default async function KnowledgeSlugPage({
   }
 
   // Step 2 — Article resolution. Resolves the document once (Task 4.3.1)
-  // and passes its Breadcrumb/Header/Series Banner/Body content into Task
-  // 4.3.2's layout slots (Tasks 4.3.3/4.3.4). `tableOfContents`/
+  // and passes its Breadcrumb/Header/Series Banner/Body/Table of Contents
+  // content into Task 4.3.2's layout slots (Tasks 4.3.3/4.3.4/4.3.5).
   // `relatedLearning`/`previousNext` stay unset — still Task 4.3.2's
-  // placeholders, since TOC generation and navigation aren't this task's
-  // scope either.
+  // placeholders, since those aren't this task's scope either.
   if (articleExists(slug)) {
     const article = getArticleBySlug(slug);
     const metadata = getArticleMetadata(article);
@@ -177,6 +182,9 @@ export default async function KnowledgeSlugPage({
     // dependency), so this is always resolvable — `PLACEHOLDER_TOPICS` is
     // the same list `knowledgeFrontmatterSchema`'s enum validates against.
     const articleTopic = findTopic(metadata.topic);
+    // The single extraction this request performs — shared by the TOC
+    // list below and by `ArticleBody`'s heading `id`s (Task 4.3.5).
+    const headings = extractHeadings(article.body);
 
     return (
       <DocumentLayout
@@ -213,7 +221,8 @@ export default async function KnowledgeSlugPage({
             />
           )
         }
-        body={<ArticleBody source={article.body} />}
+        tableOfContents={<TableOfContents headings={headings} />}
+        body={<ArticleBody source={article.body} headings={headings} />}
       />
     );
   }
