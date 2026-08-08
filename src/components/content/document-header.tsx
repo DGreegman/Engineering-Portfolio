@@ -86,11 +86,16 @@ export function DocumentHeader({
     // The one metadata field with somewhere to link to — not run through
     // the row's `capitalize` styling like its siblings (a proper noun
     // shouldn't be forced through a transform meant for lowercase values
-    // like `difficulty`).
+    // like `difficulty`). Underlined at rest (Task 4.3.10 accessibility
+    // fix): sitting inline among plain-text siblings in the same caption
+    // row, a `hover:`-only color change left it relying on color alone to
+    // read as a link (WCAG 1.4.1 Use of Color) — confirmed by an axe-core
+    // `link-in-text-block` finding, not a stylistic guess. The rest of
+    // this row's entries are plain text, so only this one needs it.
     content: (
       <Link
         href={topic.href}
-        className="normal-case hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+        className="normal-case underline underline-offset-2 decoration-muted-foreground/50 hover:text-foreground hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
       >
         {topic.title}
       </Link>
@@ -106,7 +111,16 @@ export function DocumentHeader({
 
       <p className="text-body text-muted-foreground">{description}</p>
 
-      <p className="text-caption text-muted-foreground/70 capitalize">
+      {/* `text-muted-foreground`, not `/70` (Task 4.3.10 accessibility
+          fix): the 70%-opacity variant this row originally shipped with
+          measured 2.71:1 in light mode and 4.20:1 in dark mode against
+          `--background` — both below WCAG AA's 4.5:1 minimum for normal-
+          size text, confirmed by axe-core's `color-contrast` check across
+          every article page scanned. Full-opacity `muted-foreground`
+          measures 4.73:1 / 7.63:1, clearing AA in both themes, and is the
+          same token every other citation line in this codebase (TOC,
+          SeriesBanner, CodeBlock's header) already uses undimmed. */}
+      <p className="text-caption text-muted-foreground capitalize">
         {entries.map((entry, index) => (
           <span key={entry.key}>
             {index > 0 && " · "}

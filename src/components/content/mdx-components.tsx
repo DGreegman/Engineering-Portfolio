@@ -102,12 +102,23 @@
  * Shiki), but that doesn't make `pre` itself async or this file a client
  * boundary — a Server Component can render an async component as a child
  * without the parent needing to be one too.
+ *
+ * `Callout` (Task 4.3.7) is the first genuinely custom MDX component this
+ * file maps — everything before it overrides a standard Markdown element
+ * (`h2`, `p`, `code`, ...); `Callout` has no Markdown equivalent, and is
+ * only reachable because an author writes `<Callout type="...">` directly
+ * in MDX. Registered by its exact JSX tag name (capitalized — that's what
+ * tells MDX's compiler "custom component," not "HTML element"), same as
+ * this file's own docstring anticipated back in Task 4.3.4. No per-document
+ * data needed, so unlike the headings it's a plain static entry, not part
+ * of `makeHeading`'s factory machinery.
  */
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "@/components/content/code-block";
+import { Callout } from "@/components/content/callout";
 import type { Heading } from "@/types/content";
 
 const PROSE_LINK =
@@ -364,5 +375,6 @@ export function getMdxComponents(headings: Heading[]) {
     img: Img,
     a: A,
     hr: Hr,
+    Callout,
   };
 }

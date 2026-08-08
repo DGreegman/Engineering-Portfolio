@@ -22,13 +22,18 @@
  * the Engineering Article experience (`components/content/document-layout.tsx`)
  * — with its `breadcrumb`/`header`/`seriesBanner` slots filled by Task
  * 4.3.3's Document Header work, `body` filled by Task 4.3.4's MDX
- * rendering (`ArticleBody`), and now `tableOfContents` filled by Task
- * 4.3.5's Reading Navigation. `extractHeadings(article.body)` runs exactly
- * once here — its result is handed to both `TableOfContents` (the nav
- * list) and `ArticleBody` (matching heading `id`s), so there is one
- * heading extraction per request, not two. `relatedLearning`/
- * `previousNext` stay unset (still Task 4.3.2's placeholders): Tasks
- * 4.3.8/4.3.9, not this one.
+ * rendering (`ArticleBody`), `tableOfContents` filled by Task 4.3.5's
+ * Reading Navigation, `relatedLearning` filled by Task 4.3.8's relationship
+ * resolution (`resolveRelatedLearning()`, rendered by `RelatedLearning`),
+ * and now `previousNext` filled by Task 4.3.9's sequential navigation
+ * (`resolvePreviousNext()`, both in `lib/content/relationships.ts`,
+ * rendered by `PreviousNext`). `extractHeadings(article.body)` runs
+ * exactly once here — its result is handed to both `TableOfContents` (the
+ * nav list) and `ArticleBody` (matching heading `id`s), so there is one
+ * heading extraction per request, not two; `resolveRelatedLearning(article)`
+ * and `resolvePreviousNext(article)` each similarly read the Knowledge
+ * collection exactly once and hand that result to every group/side they
+ * respectively resolve.
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -44,7 +49,13 @@ import { DocumentHeader } from "@/components/content/document-header";
 import { SeriesBanner } from "@/components/content/series-banner";
 import { ArticleBody } from "@/components/content/article-body";
 import { TableOfContents } from "@/components/content/table-of-contents";
+import { RelatedLearning } from "@/components/content/related-learning";
+import { PreviousNext } from "@/components/content/previous-next";
 import { extractHeadings } from "@/lib/content/toc";
+import {
+  resolveRelatedLearning,
+  resolvePreviousNext,
+} from "@/lib/content/relationships";
 import {
   PLACEHOLDER_TOPICS,
   type Topic,
@@ -59,6 +70,7 @@ import {
 } from "@/lib/constants/knowledge-copy";
 import {
   articleExists,
+  getAllArticles,
   getArticleBySlug,
   getArticleMetadata,
   getArticleSlugs,
@@ -171,10 +183,10 @@ export default async function KnowledgeSlugPage({
   }
 
   // Step 2 — Article resolution. Resolves the document once (Task 4.3.1)
-  // and passes its Breadcrumb/Header/Series Banner/Body/Table of Contents
-  // content into Task 4.3.2's layout slots (Tasks 4.3.3/4.3.4/4.3.5).
-  // `relatedLearning`/`previousNext` stay unset — still Task 4.3.2's
-  // placeholders, since those aren't this task's scope either.
+  // and passes its Breadcrumb/Header/Series Banner/Body/Table of Contents/
+  // Related Learning/Previous-Next content into Task 4.3.2's layout slots
+  // (Tasks 4.3.3/4.3.4/4.3.5/4.3.8/4.3.9). Every `DocumentLayout` slot is
+  // now filled.
   if (articleExists(slug)) {
     const article = getArticleBySlug(slug);
     const metadata = getArticleMetadata(article);
@@ -185,6 +197,14 @@ export default async function KnowledgeSlugPage({
     // The single extraction this request performs — shared by the TOC
     // list below and by `ArticleBody`'s heading `id`s (Task 4.3.5).
     const headings = extractHeadings(article.body);
+    // Read once, shared by both relationship resolvers below — Task
+    // 4.3.8's Related Learning and Task 4.3.9's Previous/Next are separate
+    // resolutions (exploratory groups vs. the canonical sequence) but both
+    // need the same Knowledge collection to resolve against, so this
+    // request reads it from disk exactly once rather than twice.
+    const allArticles = getAllArticles();
+    const relatedLearningGroups = resolveRelatedLearning(article, allArticles);
+    const previousNext = resolvePreviousNext(article, allArticles);
 
     return (
       <DocumentLayout
@@ -223,6 +243,13 @@ export default async function KnowledgeSlugPage({
         }
         tableOfContents={<TableOfContents headings={headings} />}
         body={<ArticleBody source={article.body} headings={headings} />}
+        relatedLearning={<RelatedLearning groups={relatedLearningGroups} />}
+        previousNext={
+          <PreviousNext
+            previous={previousNext.previous}
+            next={previousNext.next}
+          />
+        }
       />
     );
   }

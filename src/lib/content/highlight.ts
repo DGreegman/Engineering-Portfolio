@@ -20,16 +20,31 @@
  * both a `--shiki-light` and a `--shiki-dark` CSS custom property in one
  * pass — `styles/typography.css`'s `.dark` selector then picks one, the
  * same "compute once, one small CSS rule follows `.dark`" idiom already
- * used for every other themed color token in this codebase. `github-light`/
- * `github-dark`: a widely-recognized, well-tested pairing restrained enough
- * to sit inside this codebase's mostly-grayscale design system without
- * looking like a foreign embedded editor — full syntax color stays scoped
- * to token text inside the code block, never its chrome (`CodeBlock` keeps
- * its own `bg-muted`/`border-border` container regardless of theme).
+ * used for every other themed color token in this codebase.
+ *
+ * `github-light-high-contrast` / `github-dark-high-contrast` (Task 4.3.10
+ * accessibility fix — originally `github-light`/`github-dark`): still the
+ * same GitHub visual family this task's own Code Experience docstring
+ * intentionally chose ("restrained enough to sit inside this codebase's
+ * mostly-grayscale design system without looking like a foreign embedded
+ * editor"), but GitHub's own accessibility-audited variant rather than its
+ * default one. The default pairing measured below WCAG AA's 4.5:1 against
+ * this codebase's actual `bg-muted/50` code-block background — not GitHub's
+ * own near-white/near-black editor background the default theme was tuned
+ * for — on real tokens from real fixture code: `#D73A49` (a keyword red)
+ * at 4.38:1 and `#E36209` (a constant orange) at 3.34:1 in light mode,
+ * `#6A737D` (comments, identical hex in both themes) at 3.69:1 in dark
+ * mode, all confirmed by axe-core's `color-contrast` check, not a
+ * stylistic guess. The high-contrast variant's equivalent tokens measured
+ * 4.83:1–10.3:1 against the same composited background — every category
+ * checked clears AA with real margin, in both themes.
  */
 import { codeToHtml, bundledLanguagesInfo } from "shiki";
 
-const THEMES = { light: "github-light", dark: "github-dark" } as const;
+const THEMES = {
+  light: "github-light-high-contrast",
+  dark: "github-dark-high-contrast",
+} as const;
 const FALLBACK_LANG = "plaintext";
 
 /**
