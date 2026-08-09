@@ -4,6 +4,7 @@ import type { CollectionKey, ContentType } from "@/types/content";
 import {
   articleFrontmatterSchema,
   knowledgeFrontmatterSchema,
+  workFrontmatterSchema,
   seriesFrontmatterSchema,
   technologyFrontmatterSchema,
 } from "./schema";
@@ -36,8 +37,15 @@ export const COLLECTIONS: Record<CollectionKey, CollectionConfig> = {
     type: "evergreen",
   },
   work: {
+    // `workFrontmatterSchema` (Task 5.3), not the shared
+    // `articleFrontmatterSchema` — work/ is the only collection whose
+    // entries carry the required `domain`/`status` fields the Case Study
+    // Experience's Project Header and Previous/Next resolution depend on
+    // (see that schema's own docstring). Same reasoning `knowledge`'s own
+    // entry already applies for `topic`, immediately below in spirit if
+    // not in file position.
     dir: path.join(CONTENT_ROOT, "work"),
-    schema: articleFrontmatterSchema,
+    schema: workFrontmatterSchema,
     type: "case-study",
   },
   "engineering-log": {

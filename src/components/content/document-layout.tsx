@@ -20,7 +20,10 @@
  * own engineering constraint). Tasks 4.3.3 (Document Header) through 4.3.9
  * (Previous/Next) filled these slots one at a time, each only ever passing
  * a prop here — never touching this file's own structure. As of Task
- * 4.3.9, every region has shipped; none is "not built yet" anymore.
+ * 4.3.9, every region had shipped for the Article; Task 5.3 (Case Study
+ * Experience) is the first consumer to actually exercise that "support
+ * future document components without modification" promise — see
+ * `relatedKnowledge`/`engineeringLogs` below.
  *
  * A slot can still render visibly empty for a *specific* document without
  * that being a bug — most articles were never going to be part of a
@@ -32,13 +35,23 @@
  * depending on whether the *region itself* can be absent or only its
  * *content* can:
  *
- * - `seriesBanner` is the one slot whose `Section` is conditionally
- *   omitted below — an absent series leaves no trace in the DOM at all.
- * - `tableOfContents`, `relatedLearning`, and `previousNext` all still
- *   render their `Section` wrapper unconditionally (touching
- *   `tableOfContents`'s would mean modifying `DocumentContainer`'s
- *   structure, Task 4.3.2's, which no later task owns) —
- *   `TableOfContents`/`RelatedLearning`/`PreviousNext` each just return
+ * - `seriesBanner`, `relatedLearning`, `relatedKnowledge`, and
+ *   `engineeringLogs` are the slots whose `Section` is conditionally
+ *   omitted below — an absent one leaves no trace in the DOM at all.
+ *   `relatedLearning` moved into this group in Task 5.3: it rendered
+ *   unconditionally through Task 4.3.9 because every Knowledge route
+ *   always passed it, but the Case Study route legitimately never does
+ *   (Work uses `relatedKnowledge`/`engineeringLogs` instead — docs/31 §3's
+ *   "two separate closing relationships... on purpose" — so a Case Study
+ *   page with an unconditional `relatedLearning` `Section` would show a
+ *   dashed "Related Learning Region" placeholder box for a region that
+ *   isn't part of its approved structure at all). This is the identical
+ *   bug class `seriesBanner`'s own fix already caught once (below) —
+ *   caught this time by design, not by publishing a broken page first.
+ * - `tableOfContents` and `previousNext` still render their `Section`
+ *   wrapper unconditionally (touching `tableOfContents`'s would mean
+ *   modifying `DocumentContainer`'s structure, Task 4.3.2's, which no
+ *   later task owns) — `TableOfContents`/`PreviousNext` each just return
  *   `null` into their own `Section` when they have nothing to show,
  *   leaving an empty landmark rather than none. Harmless (nothing for a
  *   screen reader to announce inside it) and a smaller compromise than
@@ -49,13 +62,26 @@
  *   box anyway, left over from before Task 4.3.3's real `SeriesBanner`
  *   existed.
  *
+ * `relatedKnowledge`/`engineeringLogs` (Task 5.3): the Case Study's own two
+ * closing relationship regions, distinct from `relatedLearning` per
+ * `docs/31-CASE_STUDY_EXPERIENCE.md` §1/§3 — Related Knowledge answers
+ * "what concept does this apply," Engineering Logs answers "what process
+ * produced this," and keeping them as two separately-landmarked `Section`s
+ * (rather than composing two components inside the one existing
+ * `relatedLearning` slot) is what preserves that distinction as a real,
+ * separately-announced document region rather than a visual detail inside
+ * one. A route passes either `relatedLearning` (Knowledge) or
+ * `relatedKnowledge`/`engineeringLogs` (Work) — never expected to mix, though
+ * nothing here enforces that structurally, the same "trusts its caller"
+ * posture every other slot in this component already has.
+ *
  * Every `?? <PlaceholderRegion />` fallback below is now a defensive-only
  * path, not a "still coming" signal — every real article resolves a topic
- * (required by schema) and has body content, and the route always passes a
- * real `TableOfContents`/`RelatedLearning`/`PreviousNext` element (never
- * leaves any of those three props unset), so none of these should actually
- * hit their fallback; each exists to make it obvious if that assumption is
- * ever wrong, not because emptiness is expected.
+ * (required by schema) and has body content, and every route always passes
+ * a real `TableOfContents`/`PreviousNext` element (never leaves either of
+ * those two props unset), so neither should actually hit its fallback;
+ * each exists to make it obvious if that assumption is ever wrong, not
+ * because emptiness is expected.
  *
  * No `authorFooter` slot: this task's own "Document Structure" region list
  * doesn't include one (`docs/20`'s Information Architecture does, as the
@@ -115,6 +141,10 @@ export interface DocumentLayoutProps {
   tableOfContents?: React.ReactNode;
   body?: React.ReactNode;
   relatedLearning?: React.ReactNode;
+  /** Case Study only (Task 5.3) — see this file's own docstring. */
+  relatedKnowledge?: React.ReactNode;
+  /** Case Study only (Task 5.3) — see this file's own docstring. */
+  engineeringLogs?: React.ReactNode;
   previousNext?: React.ReactNode;
 }
 
@@ -125,6 +155,8 @@ export function DocumentLayout({
   tableOfContents,
   body,
   relatedLearning,
+  relatedKnowledge,
+  engineeringLogs,
   previousNext,
 }: DocumentLayoutProps) {
   return (
@@ -173,11 +205,23 @@ export function DocumentLayout({
         />
       </Section>
 
-      <Section aria-label="Related Learning" spacing="md" width="full">
-        {relatedLearning ?? (
-          <PlaceholderRegion label="Related Learning Region" />
-        )}
-      </Section>
+      {relatedLearning && (
+        <Section aria-label="Related Learning" spacing="md" width="full">
+          {relatedLearning}
+        </Section>
+      )}
+
+      {relatedKnowledge && (
+        <Section aria-label="Related Knowledge" spacing="md" width="full">
+          {relatedKnowledge}
+        </Section>
+      )}
+
+      {engineeringLogs && (
+        <Section aria-label="Engineering Logs" spacing="md" width="full">
+          {engineeringLogs}
+        </Section>
+      )}
 
       <Section
         aria-label="Previous / Next Navigation"

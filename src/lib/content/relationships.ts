@@ -105,7 +105,18 @@ function toSummary(item: KnowledgeItem): ResolvedArticleSummary {
  * is), so this function doesn't need its own knowledge of what "published"
  * means.
  */
-function resolveArticleReferences(
+/**
+ * Exported (Task 5.3): the one lookup Related Knowledge
+ * (`case-study-relationships.ts`) needs is identical to what Prerequisites/
+ * Related Concepts already do here — resolve a raw slug list against a real
+ * Knowledge article collection — and this function already does exactly
+ * that generically (it only reads `articles`/a slug list/`excludeSlug`/
+ * `limit`, nothing Knowledge-specific beyond the `KnowledgeItem[]` it
+ * resolves against). Exporting it directly, rather than duplicating its
+ * ~15 lines in a second file, is "prefer extension over duplication"
+ * applied at function granularity, not just component granularity.
+ */
+export function resolveArticleReferences(
   slugs: string[],
   articles: KnowledgeItem[],
   excludeSlug: string,

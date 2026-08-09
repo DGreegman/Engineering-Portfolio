@@ -21,6 +21,22 @@
  * `/work/[slug]` route shape (that doc's own routing example is literally
  * `/work/vaultpay`) — the route doesn't resolve yet (Milestone 6), same
  * situation as the header nav's existing `/work` link.
+ *
+ * `featured` (Task 5.1) — this file remains the **only** collection of
+ * projects. docs/29-WORK_LANDING_PROPOSAL.md §3 ("Featured Is Not a
+ * Separate Collection") is explicit that Featured Case Studies must never
+ * become a second dataset: a project is marked featured on its own single
+ * record, not copied into a parallel list. `lib/content/work.ts`'s
+ * `getFeaturedCaseStudies()`/`getProjectLibrary()` are the only readers of
+ * this array outside this file — one filtered, one not — so `app/work/
+ * page.tsx` never touches `.filter()` itself (Task 5.1 review refinement
+ * #1: presentation should receive already-resolved data, not derive it).
+ * `featured` is optional and editorial, set by hand per §3's "editorial,
+ * never mechanical" selection criteria (architectural complexity,
+ * interesting trade-offs, documentation quality) — not derived from
+ * `status` or list position. VaultPay and GoHunt are marked featured;
+ * Haya — still `"In Progress"` and without a full case study yet — isn't,
+ * consistent with that same section's "quality of documentation" criterion.
  */
 
 export interface CaseStudyEntry {
@@ -30,6 +46,8 @@ export interface CaseStudyEntry {
   status: "Completed" | "In Progress";
   publishedAt?: string;
   href: string;
+  /** Editorial pick for Featured Case Studies. See docstring above. */
+  featured?: boolean;
 }
 
 export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
@@ -41,6 +59,7 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
     status: "Completed",
     publishedAt: "Aug 2026",
     href: "/work/vaultpay",
+    featured: true,
   },
   {
     title: "GoHunt",
@@ -50,6 +69,7 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
     status: "Completed",
     publishedAt: "Jul 2026",
     href: "/work/gohunt",
+    featured: true,
   },
   {
     title: "Haya",
