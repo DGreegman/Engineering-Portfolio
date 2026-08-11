@@ -59,6 +59,24 @@ import type { ContentItem } from "@/types/content";
 type WorkItem = ContentItem<WorkFrontmatter>;
 type EngineeringLogItem = ContentItem<ArticleFrontmatter>;
 
+/**
+ * Four is an intentional editorial maximum, not an incidental implementation
+ * detail — confirmed explicitly during Task 5.6's architecture review, so
+ * this doesn't drift into "just a number that happened to be here" over
+ * time. Its lineage: `docs/20-ARTICLE_EXPERIENCE.md` §8 ("cap Related
+ * Concepts visually (3–4 shown, regardless of how many the frontmatter
+ * lists)") set the original editorial ceiling for Knowledge's own
+ * relationship groups; `docs/31-CASE_STUDY_EXPERIENCE.md` §5 explicitly
+ * carried that same ceiling over for the Case Study's Related Knowledge
+ * ("capped at a small number regardless of how many a well-connected case
+ * study accumulates"); `docs/34-KNOWLEDGE_INTEGRATION.md` §4 then adopted
+ * the existing constant rather than proposing a new one. Reusing the same
+ * literal constant `relationships.ts` already defines for Knowledge's own
+ * groups (rather than each file inventing its own) is itself part of that
+ * intent — one editorial ceiling, shared, not two numbers that could drift
+ * apart. Changing this value is a design decision that revisits `docs/34`
+ * §4, not a routine tuning knob.
+ */
 const DEFAULT_RELATIONSHIP_LIMIT = 4;
 
 function toCaseStudySummary(item: WorkItem): ResolvedArticleSummary {
@@ -75,13 +93,17 @@ function toCaseStudySummary(item: WorkItem): ResolvedArticleSummary {
 }
 
 /**
- * Related Knowledge (docs/31 §5) — resolves `frontmatter.relatedContent`
+ * Related Knowledge (docs/31 §5, formalized as one of three Knowledge
+ * Integration mechanisms by docs/34 §1/§4 — the other two being inline MDX
+ * links, unchanged infrastructure, and the Work Landing's Engineering
+ * Lessons → Knowledge links) — resolves `frontmatter.relatedContent`
  * against real, published Knowledge articles. Reuses
  * `resolveArticleReferences()` directly rather than re-implementing the
  * same lookup/exclude/cap logic: the function only needs a slug list and a
  * `KnowledgeItem[]` to resolve against, neither of which is Knowledge-
  * specific in a way that would prevent a Work item's `relatedContent` from
- * using it too.
+ * using it too. `limit`'s default is `DEFAULT_RELATIONSHIP_LIMIT` — see
+ * that constant's own docstring for why it stays fixed at four.
  */
 export function resolveRelatedKnowledge(
   caseStudy: WorkItem,

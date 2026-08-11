@@ -50,6 +50,26 @@
  * here comes from `CodeBlock` having a small, focused prop surface and
  * clear internal seams (highlighting, header, scroll container are each
  * their own piece) — not from declaring props nothing uses yet.
+ *
+ * Architecture Experience note (Task 5.4, docs/32-ARCHITECTURE_EXPERIENCE.md):
+ * this component is also, today, how a Case Study's architecture diagrams
+ * (system-context, sequence, and similar) render — a fenced code block
+ * with no language or `text`, degrading to plain unhighlighted text via
+ * `highlight.ts`'s own fallback. This is the *current* representation
+ * because it already satisfies everything docs/32 §3/§4/§13 require of a
+ * diagram without any further work: accessible (it's literally text, read
+ * linearly by any assistive technology, no separate alt-text mechanism
+ * needed), copyable, and non-interactive by construction. It is not a
+ * commitment that every future diagram must stay a `CodeBlock` — dedicated
+ * diagram rendering, richer visual representations, diagram-specific
+ * infrastructure, and interactive diagrams are all documented future
+ * evolution (docs/32 §15), not something this component forecloses.
+ * Whichever future implementation eventually renders a diagram, docs/32's
+ * own rule holds regardless: a diagram may summarize, compress, or clarify
+ * architectural information, but must never be the sole authoritative
+ * representation of an architectural fact — adjacent prose must always
+ * carry the same claim independently, whether the diagram beside it is
+ * this component or something built later.
  */
 import { highlightCode, resolveLanguageLabel } from "@/lib/content/highlight";
 import { CopyButton } from "@/components/content/copy-button";
