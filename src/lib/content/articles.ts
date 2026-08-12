@@ -18,6 +18,7 @@ import {
   getBySlug,
   getSlugs,
   filterDrafts,
+  sortByPublishedDate,
 } from "@/lib/content/loader";
 import type { KnowledgeFrontmatter } from "@/lib/content/schema";
 import type { ContentItem } from "@/types/content";
@@ -86,6 +87,56 @@ export interface ArticleMetadata {
   relatedContent: string[];
   author?: string;
   coverImage?: string;
+}
+
+/**
+ * Options for `getFeaturedArticles()`. An options-object shape rather than
+ * this file's usual positional-args convention (e.g. `resolvePrerequisites
+ * (article, articles, limit)`) — every other resolver here takes a
+ * "subject article" as its defining first argument; this one is a
+ * collection-level query, with no subject article to lead with, so a
+ * positional signature wouldn't fit the same pattern it would be
+ * mimicking (docs/36-HOMEPAGE_IMPLEMENTATION_PLAN.md WI-2).
+ */
+export interface FeaturedArticlesOptions {
+  /** Articles to select from. Defaults to a fresh getAllArticles() read. */
+  articles?: ContentItem<KnowledgeFrontmatter>[];
+  /** Maximum number of articles returned. */
+  limit?: number;
+}
+
+/**
+ * Task 6.1's Knowledge selector (docs/36 WI-2) — featured articles first,
+ * newest-first fallback to fill any remaining slots, never a duplicate.
+ * Reuses `sortByPublishedDate()` (`lib/content/loader.ts`) for both sorts
+ * rather than writing a second date comparator, and inherits
+ * `getAllArticles()`'s draft-filtering for free rather than re-checking
+ * `draft` itself.
+ *
+ * Deliberately not homepage-specific in name, shape, or location (the
+ * approved algorithm's own point 6): the `articles` param accepts an
+ * already-fetched collection, the same "optional-with-a-default" shape
+ * every other resolver in this file already uses, so a future caller (e.g.
+ * `/knowledge`'s own eventual migration off placeholder data) can pass an
+ * already-fetched list instead of triggering a second disk read, without
+ * this function's signature changing.
+ */
+export function getFeaturedArticles({
+  articles = getAllArticles(),
+  limit = 3,
+}: FeaturedArticlesOptions = {}): ContentItem<KnowledgeFrontmatter>[] {
+  const featured = sortByPublishedDate(
+    articles.filter((article) => article.frontmatter.featured),
+  ).slice(0, limit);
+
+  if (featured.length >= limit) return featured;
+
+  const featuredSlugs = new Set(featured.map((article) => article.slug));
+  const fallback = sortByPublishedDate(
+    articles.filter((article) => !featuredSlugs.has(article.slug)),
+  ).slice(0, limit - featured.length);
+
+  return [...featured, ...fallback];
 }
 
 export function getArticleMetadata(

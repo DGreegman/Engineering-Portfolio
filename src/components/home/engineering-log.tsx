@@ -30,10 +30,21 @@
  * Fully data-agnostic, same pattern as `EngineeringNotebook`/
  * `EngineeringCaseStudies`: `entries` is a required prop; this component
  * doesn't know it's `PLACEHOLDER_LOG` (lib/constants/placeholder-log.ts)
- * today versus real Engineering Log entries later. The only data-driven
- * branch is presentational — an empty array renders
- * `ENGINEERING_LOG_COPY.emptyState`, genuine doc-14 copy for that real
- * future case.
+ * today versus real Engineering Log entries later.
+ *
+ * Empty state (Task 6.1, docs/36 WI-5): this component originally rendered
+ * `ENGINEERING_LOG_COPY.emptyState` — genuine doc-14 copy — when `entries`
+ * was empty. Task 6.1 wires this component to the real (currently empty)
+ * Engineering Log collection, and `docs/35-HOMEPAGE_INTEGRATION.md` §12/§20
+ * are explicit that the real empty state must render *nothing* ("no
+ * placeholder cards, no 'coming soon' copy standing in for real content...
+ * the section should render nothing") — the same `null`-when-empty
+ * discipline `RelatedKnowledge`/`RelatedEngineeringLogs` (Work, Task 5.3/
+ * 5.7) already establish, rather than an empty-state message. The early
+ * `return null` below supersedes the original copy-driven empty state for
+ * that reason; `ENGINEERING_LOG_COPY.emptyState` itself is left defined in
+ * `homepage-copy.ts` (out of this task's scope to remove) but is no longer
+ * referenced from this component.
  *
  * Whole-entry clickability via the same stretched-link pattern as the
  * other two collection sections: the title is the one real `<Link>`,
@@ -88,6 +99,9 @@ export function EngineeringLog({
 }: {
   entries: EngineeringLogEntry[];
 }) {
+  // Real, honest empty state — see this file's own docstring above.
+  if (entries.length === 0) return null;
+
   return (
     // width="full" — WorkspaceLayout supplies the shared PageContainer
     // for every page now; see readme-hero.tsx's comment for why.
@@ -109,30 +123,20 @@ export function EngineeringLog({
             {ENGINEERING_LOG_COPY.sectionLabel}
           </h3>
 
-          {entries.length === 0 ? (
-            <Stack gap="xs">
-              {ENGINEERING_LOG_COPY.emptyState.map((paragraph) => (
-                <p key={paragraph} className="text-body text-muted-foreground">
-                  {paragraph}
-                </p>
-              ))}
-            </Stack>
-          ) : (
-            // No negative margin here — same reasoning as
-            // EngineeringCaseStudies: the hover/focus highlight is the same
-            // padding box as the row's spacing, so canceling that padding
-            // from the outside would drag the highlight into the heading
-            // above and the button below.
-            <ol className="max-w-reading divide-y divide-border/50">
-              {entries.map((entry, index) => (
-                <LogEntryRow
-                  key={entry.href}
-                  entry={entry}
-                  logNumber={index + 1}
-                />
-              ))}
-            </ol>
-          )}
+          {/* No negative margin here — same reasoning as
+              EngineeringCaseStudies: the hover/focus highlight is the same
+              padding box as the row's spacing, so canceling that padding
+              from the outside would drag the highlight into the heading
+              above and the button below. */}
+          <ol className="max-w-reading divide-y divide-border/50">
+            {entries.map((entry, index) => (
+              <LogEntryRow
+                key={entry.href}
+                entry={entry}
+                logNumber={index + 1}
+              />
+            ))}
+          </ol>
         </Stack>
 
         <div>

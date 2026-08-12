@@ -16,10 +16,16 @@
  * `WorkspaceLayout`'s page-spanning wrapper, which is actually taller than
  * it.
  *
- * A Server Component: `NavLink` and `ThemeToggle` are the only client
- * islands it renders. Sticky positioning and the hairline border are this
- * component's own presentation choice — `WorkspaceLayout` stays visually
- * opinion-free by design (Task 2.1).
+ * A Server Component: `NavLink`, `ThemeToggle`, and — below `lg` —
+ * `MobileNavigation` (Task 6.1, docs/36-HOMEPAGE_IMPLEMENTATION_PLAN.md
+ * WI-6) are the only client islands it renders. Sticky positioning and the
+ * hairline border are this component's own presentation choice —
+ * `WorkspaceLayout` stays visually opinion-free by design (Task 2.1).
+ *
+ * `MobileNavigation` is appended to the existing icon cluster rather than
+ * inserted elsewhere — an additive change to this row, not a restructure —
+ * and renders its own trigger only below `lg`, so desktop's existing
+ * layout (wordmark, `PrimaryNavigation`, then this cluster) is unaffected.
  *
  * See docs/09-Component Specification.md ("Header") and
  * docs/07-DESIGN_SYSTEM.md ("Calm Interfaces" — no shadow, no blur, one
@@ -30,6 +36,7 @@ import { Rss, Search } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/container";
 import { PrimaryNavigation } from "@/components/navigation/primary-navigation";
+import { MobileNavigation } from "@/components/navigation/mobile-navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { GithubIcon } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
@@ -94,6 +101,7 @@ export function Header() {
               <GithubIcon />
             </Button>
             <ThemeToggle />
+            <MobileNavigation />
           </div>
         </div>
       </PageContainer>
