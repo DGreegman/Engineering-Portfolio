@@ -1,0 +1,255 @@
+---
+title: "Cookeaze: Reconciling a Wallet Ledger Against an Unreliable Payment Webhook"
+description: "Hardening a creator-payout wallet system against double-spends and race conditions once a webhook alone turned out not to be a reliable source of truth for whether a payment actually happened."
+publishedAt: "2024-12-03"
+tags: ["backend", "payments", "django", "ai"]
+technologies:
+  [
+    "Python",
+    "Django",
+    "Django REST Framework",
+    "MySQL",
+    "Celery",
+    "Redis",
+    "Paystack",
+  ]
+difficulty: "advanced"
+domain: "Backend Infrastructure"
+status: "Completed"
+timeline: "December 2024 – ongoing, 2026 (380+ commits, small team)"
+relatedContent: []
+engineeringLog: []
+---
+
+## Executive Summary
+
+Cookeaze is a cooking and meal-planning platform: AI-generated recipes and
+meal plans, a household "Family Kitchen" voting feature for deciding what
+to cook together, and a creator marketplace where recipe creators can sell
+meal offers and withdraw earnings through a wallet. This case study
+documents the wallet and payment-reconciliation system specifically —
+where a webhook-driven design turned out to be an unreliable single source
+of truth, and what replaced it.
+
+## Project Context
+
+Once money moves through the platform — users funding a wallet, creators
+being paid out, withdrawals hitting a real bank account through a payment
+processor — "the payment succeeded" can no longer be an assumption. It has
+to be a fact the backend can independently confirm, because the consequence
+of getting it wrong in either direction is real: crediting a wallet for a
+payment that never actually completed, or failing to credit one that did.
+
+## The Problem
+
+The initial design trusted the payment provider's webhook as the single
+signal that a transaction had completed. Webhooks are not guaranteed
+delivery — a webhook can be delayed, dropped, or (rarely) delivered more
+than once — which means a design that only reacts to a webhook can end up
+with a transaction that completed on the provider's side but was never
+recorded, or a race between an in-flight verification and a
+near-simultaneous retry that could double-credit a wallet.
+
+## Constraints
+
+- A small team (a handful of engineers), not a dedicated payments team —
+  the reconciliation logic had to be maintainable by whoever touched it
+  next, not just by whoever wrote it.
+- The payment provider (Paystack, used across Nigerian and broader African
+  markets) is a real third-party dependency whose delivery guarantees the
+  system doesn't control.
+- Real user funds are involved once a wallet exists — correctness here has
+  a direct cost if it's wrong, unlike most of the rest of the platform.
+
+## Requirements
+
+### Functional
+
+- Users fund a wallet and withdraw earnings to a real bank account
+- Creators receive payouts for meal offers sold through the marketplace
+- Transaction history is visible and auditable per user
+
+### Engineering
+
+- No transaction is credited twice
+- No successfully completed payment goes unrecorded because a webhook
+  didn't arrive
+- Withdrawal failures surface a real, specific reason rather than a
+  generic error
+
+## Investigation
+
+Once webhook delivery was understood not to be guaranteed, the question
+became what to pair it with. A user-initiated "check my payment status"
+button was rejected — it depends on the user staying on the page and
+manually triggering the check, which is exactly the failure mode (a
+webhook silently never arriving) it needs to cover. The alternative that
+actually closes the gap is the system itself polling the provider's own
+transaction-status API on a schedule, independent of whether the webhook
+ever shows up — turning "wait for a push" into "push, with a pull-based
+fallback that doesn't depend on anything the client does."
+
+## Architecture
+
+```
+Payment initiated (fund wallet / creator payout)
+        │
+        ▼
+TransactionMapping created (tx_ref, status: pending)
+        │
+        ├──▶ Paystack webhook (push)  ──▶ verify ──▶ update TransactionMapping
+        │                                              │
+        └──▶ Celery polling task (pull, self-chaining) │
+              re-queues itself with backoff             │
+              until resolved or attempts exhausted  ────┘
+                        │
+                        ▼
+              Wallet balance updated (idempotent on tx_ref)
+```
+
+A `TransactionMapping` record is created up front, keyed on a unique
+transaction reference — this is what makes the two independent paths
+(webhook and poller) safe to race against each other: whichever one
+resolves the transaction first updates the wallet; the other, arriving
+after, finds the transaction already resolved on the same unique
+reference and is a safe no-op rather than a second credit. Withdrawals
+follow the same pattern in the other direction: an `OTP`-confirmed
+withdrawal request is submitted to Paystack's transfer API, and the same
+self-chaining poll confirms the transfer completed even if the transfer's
+own webhook doesn't arrive.
+
+## Engineering Decisions
+
+### Decision: A Self-Chaining Celery Poll as a Webhook Fallback
+
+**Alternatives Considered:** Relying on the webhook alone; a fixed-count
+retry instead of a self-chaining, backing-off poll.
+
+**Trade-offs:** More moving parts than "just handle the webhook" — a
+background task that has to track its own attempt count and re-queue
+itself.
+
+**Rationale:** A webhook that might not arrive needs a fallback that
+doesn't depend on anything external happening — a task that checks the
+transaction status and, if still unresolved, schedules its own next check
+with backoff, is the version of "keep checking" that survives the webhook
+never showing up at all, not just showing up late.
+
+### Decision: Idempotent Resolution Keyed on a Unique Transaction Reference
+
+**Alternatives Considered:** Locking around the whole verification
+codepath instead of relying on a unique constraint.
+
+**Trade-offs:** Requires every write path (webhook handler and poller
+alike) to go through the same "resolve once" check rather than assuming
+it's the only writer.
+
+**Rationale:** The webhook and the poller can, in principle, both resolve
+the same transaction at nearly the same moment. A unique constraint on the
+transaction reference — combined with only crediting a wallet from an
+unresolved-to-resolved state transition — means whichever path gets there
+first wins and the second is a no-op, rather than depending on a lock the
+two independent code paths might not both remember to take.
+
+### Decision: OTP Confirmation Before a Withdrawal Is Submitted
+
+**Alternatives Considered:** Allowing a withdrawal request to go straight
+to the payment provider once submitted.
+
+**Trade-offs:** An extra step in the withdrawal flow.
+
+**Rationale:** A withdrawal moves real money out of the platform to an
+external bank account — a compromised session initiating an unconfirmed
+withdrawal is a meaningfully worse failure mode than the same thing
+happening for an in-app purchase, which is what justifies the extra
+friction specifically here and not elsewhere in the product.
+
+### Decision: Surface the Provider's Actual Rejection Reason, Not a Generic Error
+
+**Alternatives Considered:** Returning a generic "transfer failed" message
+for any provider-side rejection.
+
+**Trade-offs:** Requires mapping and safely displaying whatever reason the
+provider returns, rather than one static error string.
+
+**Rationale:** A rejected transfer (wrong account details, provider-side
+hold, insufficient provider balance) is a different problem for a user to
+fix depending on which one it is — collapsing them into one generic
+message turns every failure into a support ticket instead of something a
+user might resolve themselves from the actual reason.
+
+## Implementation
+
+The backend is Python/Django with Django REST Framework, MySQL as the
+primary datastore, and Celery (Redis-backed) for background work —
+payment polling, AI recipe generation, and notification delivery all run
+as Celery tasks rather than inline in the request. AI recipe generation
+itself is a validation pipeline, not a single model call: a first pass
+generates a candidate recipe, a heuristic pass checks it for structural
+problems (implausible quantities, missing steps), and — only when the
+heuristic pass finds something wrong — a second, targeted AI call attempts
+a correction, rather than regenerating the whole recipe from scratch.
+Structured JSON logging covers AI services, payment/wallet flows, and
+authentication specifically, including explicit security-alert logging
+for things like unauthorized payment-verification attempts.
+
+## Validation
+
+Payment- and wallet-adjacent code (transaction polling, webhook handling,
+withdrawal flows) is covered by an automated test suite. The platform runs
+against a separate staging environment with its own database before
+changes reach production, and CI runs on pushes to `main`.
+
+## Challenges Encountered
+
+The original design's dependence on the webhook alone surfaced as
+occasional payments that completed on Paystack's side without ever being
+reflected in the platform — the self-chaining poller was added directly
+in response to that gap, not as a precautionary measure taken in advance.
+Separately, an earlier version of the withdrawal flow was vulnerable to a
+race condition that could, in principle, allow a double-spend if two
+withdrawal requests were processed close together; this was hardened once
+identified, ahead of it causing a real incident.
+
+## Trade-offs
+
+Polling as a fallback trades some load and latency (a resolved transaction
+might take one polling interval longer to reflect, in the case where the
+webhook itself would have arrived instantly) for not depending on webhook
+delivery at all. That trade holds as long as polling frequency stays cheap
+relative to transaction volume — at a large enough scale increase, the
+polling fallback would need to become smarter (e.g., only polling
+transactions old enough that a webhook should reasonably have arrived by
+now) rather than polling everything unresolved on a fixed schedule.
+
+## Outcome
+
+The wallet and payment-reconciliation system is live and in production
+use, handling both wallet funding and creator withdrawals through
+Paystack, with the self-chaining poll fallback and idempotent resolution
+logic directly closing the specific gap (webhook-only trust) that an
+earlier version of the system had. No public transaction-volume or
+reliability figures are published here — the concrete evidence available
+is that the specific failure mode motivating this design (payments
+completed but never recorded) was identified from real production
+behavior and addressed, not hypothesized in advance.
+
+## Lessons Learned
+
+<Callout type="key-insight">
+  A third-party webhook is a hint that something happened, not a guarantee. Any
+  system crediting real money on a webhook alone needs an independent way to
+  confirm the same fact — and that fallback has to be driven by the system
+  itself, never by asking a user to notice and retry.
+</Callout>
+
+Idempotency has to be enforced at the data layer (a unique constraint two
+independent code paths both respect), not just assumed from "only one
+thing should ever call this."
+
+## Future Improvements
+
+Extend the same self-chaining reconciliation pattern to any future payment
+provider integration rather than re-deriving it per-provider, and revisit
+polling frequency if transaction volume grows enough that polling every
+unresolved transaction on a fixed schedule stops being cheap.

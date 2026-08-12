@@ -1,0 +1,172 @@
+---
+title: "Optimistic vs Pessimistic Locking"
+description: "Two different bets about how often concurrent writes will actually collide — and why the wrong bet costs you correctness or throughput."
+topic: "distributed-systems"
+publishedAt: "2026-08-12"
+tags: ["concurrency", "databases", "locking", "correctness"]
+difficulty: "intermediate"
+---
+
+## Introduction
+
+Two requests read the same database row at nearly the same instant, each
+intending to update it. Without some form of concurrency control, both can
+compute their change against the value they read, and whichever writes
+last silently overwrites the other's update — the classic "lost update"
+problem. Optimistic and pessimistic locking are the two mainstream answers
+to it, and they make opposite bets about how often that collision actually
+happens.
+
+## The Problem
+
+Preventing a lost update requires the database to enforce some rule about
+what happens when two transactions try to touch the same row at once. That
+rule can either **assume conflicts are rare** and check for one only at
+the moment of writing (optimistic), or **assume conflicts are likely
+enough to guard against upfront** and block a second writer until the
+first finishes (pessimistic). Choosing wrong in either direction has a
+real cost: the wrong assumption under high contention means constant
+failed retries; the wrong assumption under low contention means
+unnecessary waiting for a conflict that was never going to happen.
+
+## The Core Concept
+
+**Optimistic concurrency control** lets every transaction proceed without
+blocking, and instead checks — at write time — whether the row changed
+since it was read (typically via a version number or timestamp column). If
+it did, the write is rejected and the caller retries. **Pessimistic
+concurrency control** takes a lock on the row at read time (`SELECT ...
+FOR UPDATE` in SQL), so no other transaction can read-and-intend-to-write
+the same row until the first transaction finishes — a second writer simply
+waits.
+
+## Visual Model
+
+```
+OPTIMISTIC                          PESSIMISTIC
+
+Tx A: read row (v1)                 Tx A: SELECT ... FOR UPDATE (locks row)
+Tx B: read row (v1)                 Tx B: SELECT ... FOR UPDATE (blocks, waits)
+Tx A: write, check v1==v1 ✓ → v2     Tx A: write → commit → releases lock
+Tx B: write, check v1==v2 ✗         Tx B: (unblocks) reads current value, writes
+      → rejected, B must retry            → commit
+```
+
+Optimistic locking lets both transactions run freely and only discovers
+the conflict at the end. Pessimistic locking prevents the conflict from
+ever being possible, at the cost of Tx B doing nothing but waiting.
+
+## Implementation
+
+### Optimistic: A Version Column
+
+```sql
+UPDATE accounts
+SET balance = balance - 100, version = version + 1
+WHERE id = 42 AND version = 7;
+-- If another transaction already updated this row (version is no longer 7),
+-- this UPDATE affects 0 rows — the application checks the row count and retries.
+```
+
+The application reads the row (getting `version = 7`), computes its
+change, and includes the version it read in the `WHERE` clause. If nothing
+else wrote to the row in between, the update succeeds and bumps the
+version. If something did, the `WHERE` clause matches zero rows, and the
+application knows to re-read and retry.
+
+### Pessimistic: A Row Lock
+
+```sql
+BEGIN;
+SELECT balance FROM accounts WHERE id = 42 FOR UPDATE;
+-- Any other transaction's FOR UPDATE on the same row now blocks here
+UPDATE accounts SET balance = balance - 100 WHERE id = 42;
+COMMIT; -- lock released
+```
+
+`FOR UPDATE` acquires a row-level lock for the duration of the
+transaction. A second transaction attempting the same `SELECT ... FOR
+UPDATE` on the same row blocks until the first transaction commits or
+rolls back, then proceeds against the now-current value — no version
+check needed, because the lock made the conflict impossible rather than
+detecting it after the fact.
+
+## Trade-offs
+
+**Advantages of optimistic locking**
+
+- No blocking — every transaction proceeds immediately.
+- Scales well under low contention, where conflicts are genuinely rare.
+
+**Disadvantages of optimistic locking**
+
+- Under high contention on the same row, retries compound — every retry
+  risks colliding with yet another concurrent writer.
+- Requires every write path to handle the retry case correctly; forgetting
+  to check the affected-row count silently reintroduces the lost-update bug.
+
+**Advantages of pessimistic locking**
+
+- Guarantees no conflict is possible for the locked row — no retry logic
+  needed in the application.
+- Predictable behavior under high contention: requests queue instead of
+  racing and failing.
+
+**Disadvantages of pessimistic locking**
+
+- A transaction holding a lock blocks every other transaction wanting the
+  same row, even if most of them would never have actually conflicted.
+- Long-running transactions holding locks increase the risk of deadlock —
+  two transactions each waiting on a row the other holds.
+
+**When to use which**
+
+Optimistic locking suits low-contention, high-read workloads — many
+distinct rows, rarely the same one twice in the same instant. Pessimistic
+locking suits workloads with real, expected contention on the same rows —
+a small number of "hot" records many transactions genuinely compete over.
+
+## Common Mistakes
+
+**Choosing optimistic locking by default without checking real contention
+patterns.** It's the framework/ORM default in many stacks, which makes it
+easy to end up with it on a genuinely hot row without ever deciding to.
+
+**Locking more than the transaction needs.** `SELECT ... FOR UPDATE`
+without a precise `WHERE` clause can lock more rows than intended,
+serializing unrelated work that never needed to wait on each other.
+
+**Acquiring locks in inconsistent order across code paths.** Two
+transactions locking the same two rows in opposite order is the classic
+recipe for a deadlock — always acquire locks on multiple rows in the same,
+fixed order (e.g., sorted by primary key) everywhere in the codebase.
+
+## Real-world Examples
+
+Version-column optimistic locking is a built-in feature of most ORMs
+(Hibernate's `@Version`, Django's `django-concurrency`) precisely because
+most application data — a user profile, a blog post — is rarely written by
+two actors at once. Financial ledgers and inventory-management systems
+handling a small number of high-traffic accounts or SKUs more often reach
+for pessimistic locking specifically because the contention on those
+particular rows is real and expected, not a rare edge case.
+
+## Key Takeaways
+
+- Optimistic locking detects conflicts after the fact (via a version
+  check); pessimistic locking prevents them upfront (via a row lock).
+- The right choice depends on how often two writers actually compete for
+  the same row — not which pattern is more familiar or is the framework
+  default.
+- Optimistic locking trades correctness enforcement for retry logic;
+  pessimistic locking trades retry logic for blocking and deadlock risk.
+- A system can use both at once, scoped to different tables or even
+  different rows within the same table, based on each one's real
+  contention profile.
+
+## Related Learning
+
+Both approaches solve the same underlying problem — a lost update under
+concurrent writes — from opposite directions. Browse more of the
+[Distributed Systems topic](/knowledge/distributed-systems) for related
+reading on consistency and concurrency control.

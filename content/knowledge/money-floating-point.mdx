@@ -1,0 +1,183 @@
+---
+title: "Why Money Should Never Use Floating Point"
+description: "Floating-point numbers can't represent most decimal fractions exactly — which is exactly the property a monetary amount can't tolerate."
+topic: "backend"
+publishedAt: "2026-08-12"
+tags: ["floating-point", "money", "data-modeling", "correctness"]
+difficulty: "beginner"
+---
+
+## Introduction
+
+`0.1 + 0.2` does not equal `0.3` in almost every mainstream programming
+language. Run it in a JavaScript console, a Python REPL, or a Java
+program, and the result is `0.30000000000000004`. This isn't a bug in any
+one language — it's a property of how floating-point numbers are
+represented in binary, and it's exactly the property that makes them the
+wrong choice for representing money.
+
+## The Problem
+
+A monetary amount has to be exact. ₦5,000.00 has to stay ₦5,000.00 after
+being added, subtracted, multiplied, stored, and retrieved a thousand
+times — not ₦4,999.9999999999 or ₦5,000.0000000001. A system that lets
+tiny representation errors accumulate across enough transactions will
+eventually produce a balance that doesn't match its own transaction
+history, which is precisely the failure a financial ledger exists to
+prevent.
+
+## The Core Concept
+
+IEEE 754 floating-point numbers (the `float`/`double` types nearly every
+language uses by default) represent numbers in binary, and most decimal
+fractions — including ordinary ones like `0.1` — have no exact binary
+representation, the same way `1/3` has no exact finite decimal
+representation. The number stored is the closest binary approximation,
+not the exact decimal value. For most numeric work, that tiny error is
+irrelevant. For money, where the exact value is the entire point, it
+isn't.
+
+## Visual Model
+
+```
+Decimal:  0.1
+Binary:   0.0001100110011001100110011001100110011001100110011010... (repeating)
+Stored:   0.1000000000000000055511151231257827021181583404541015625
+                                                          ↑
+                                    the closest a 64-bit double can get
+```
+
+`0.1` can't be represented exactly in binary, the same way `1/3` can't be
+represented exactly in decimal (`0.3333...`, forever). The stored value is
+already wrong before any arithmetic happens — addition and comparison just
+make the error visible.
+
+## Implementation
+
+### The Wrong Way
+
+```js
+let balance = 10.1;
+balance -= 9.3;
+console.log(balance); // 0.7999999999999998, not 0.8
+```
+
+Even a single subtraction between two ordinary-looking decimal values can
+produce a result that isn't the value it looks like it should be. Compare
+that result to `0.8` with `===` and the comparison fails — the software
+did the arithmetic "correctly" by floating-point rules and still produced
+a wrong-looking balance.
+
+### The Fix: Represent the Smallest Unit as an Integer
+
+```js
+// Store 5000.00 Naira as 500000 kobo (1 Naira = 100 kobo)
+let balanceKobo = 500000;
+balanceKobo -= 100; // subtract 1 kobo
+console.log(balanceKobo); // 499900 — exact, every time
+```
+
+Integers have no representation error — `500000 - 100` is exactly `499900`
+in every language, on every platform, with no rounding involved. The
+amount is converted to and from its display form (dividing by 100 for a
+two-decimal currency) only at the edges — user interfaces, receipts,
+reports — never during storage or arithmetic.
+
+### The Alternative: Arbitrary-Precision Decimal Types
+
+```python
+from decimal import Decimal
+balance = Decimal("10.10") - Decimal("9.30")
+print(balance)  # Decimal('0.80') — exact
+```
+
+Where a currency doesn't cleanly divide into an integer number of a
+smallest unit, or where a language's ecosystem makes integer-cents
+awkward, a dedicated decimal type (Python's `decimal.Decimal`, Java's
+`BigDecimal`, PostgreSQL's `NUMERIC`) represents the value as a sequence
+of decimal digits rather than a binary approximation, avoiding the same
+class of error without requiring a manual unit conversion.
+
+## Trade-offs
+
+**Advantages of integer/decimal representations**
+
+- Arithmetic is exact — no accumulated rounding error across any number of
+  operations.
+- Comparisons behave the way they look like they should (`499900 ===
+499900`, always).
+- An audit can reconstruct a balance from its transaction history and get
+  the exact same number.
+
+**Disadvantages**
+
+- Integer-cents requires converting to and from a display form at every
+  boundary (API responses, UI rendering) — a step that's easy to forget
+  once and hard to notice until numbers stop matching.
+- Decimal types are typically slower than native floating-point
+  arithmetic — irrelevant for almost any real system's transaction volume,
+  but worth knowing it's not "free."
+
+**Alternatives**
+
+- Fixed-point integer representation (the smallest unit as an integer) —
+  the simplest option when a currency has a well-defined smallest unit.
+- Arbitrary-precision decimal types — better suited when integer-cents
+  conversion is awkward, or a currency's smallest unit isn't fixed.
+
+**When not to use it**
+
+Floating-point is fine for values where a tiny, non-accumulating error is
+genuinely harmless — a percentage shown for display, a scientific
+measurement with its own margin of error. The line is whether the value's
+exactness is load-bearing for a decision (does this balance match this
+ledger?) or just descriptive.
+
+## Common Mistakes
+
+**Rounding "just at the end."** Rounding a floating-point result once,
+right before display, doesn't fix accumulated error from earlier
+arithmetic — it just hides it at the display layer while the stored value
+stays wrong.
+
+**Mixing integer-cents and decimal-dollars in the same codebase without a
+clear boundary.** A function that sometimes receives `500000` (kobo) and
+sometimes `5000.00` (naira) is a silent, easy-to-introduce bug — pick one
+representation and convert only at defined boundaries, never implicitly.
+
+**Assuming a currency always has exactly two decimal places.** Not every
+currency does (some have zero, some have three) — a smallest-unit
+assumption baked in as a hardcoded `* 100` breaks the moment a system
+needs to support one that doesn't.
+
+## Real-world Examples
+
+Payment processors and card networks (Stripe, Paystack, Visa/Mastercard's
+own settlement systems) represent amounts as integers in the currency's
+smallest unit in their APIs — Stripe's API takes amounts in cents, not
+dollars, for exactly this reason. Accounting and ledger systems generally
+use fixed-point or arbitrary-precision decimal types at the database
+layer (PostgreSQL's `NUMERIC`, not `FLOAT`) rather than trusting
+floating-point columns to stay exact across years of transactions.
+
+## Key Takeaways
+
+- Most decimal fractions, including ordinary ones like `0.1`, have no
+  exact binary floating-point representation — the error exists before
+  any arithmetic happens.
+- A monetary amount's exactness is the entire point of storing it — an
+  approximation that's "close enough" for most numeric work isn't close
+  enough for a balance that has to match its own history.
+- Represent money as an integer in the currency's smallest unit, or with
+  an arbitrary-precision decimal type — never as a native floating-point
+  number.
+- Convert to a display form only at the edges of a system, never during
+  storage or arithmetic.
+
+## Related Learning
+
+This is a specific case of a more general rule: choose a data
+representation based on what has to be exactly true about the value, not
+on which type is the default or the most convenient to write arithmetic
+against. Browse more of the [Backend topic](/knowledge/backend) for
+related reading on data modeling and correctness.

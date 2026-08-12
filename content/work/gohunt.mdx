@@ -1,0 +1,282 @@
+---
+title: "GoHunt: Learning Go by Building a Job-Matching Pipeline I'd Actually Use"
+description: "Building a fetch-dedupe-filter-score-rank pipeline that gates expensive AI scoring behind cheap filtering, so a personal job search tool stays both accurate and affordable to run."
+publishedAt: "2026-07-01"
+tags: ["backend", "go", "ai", "job-search"]
+technologies: ["Go", "Fiber", "PostgreSQL", "sqlc", "Claude API", "Next.js"]
+difficulty: "intermediate"
+domain: "AI Systems"
+status: "Completed"
+timeline: "2026, 28 commits to a working core loop"
+relatedContent: []
+engineeringLog: []
+---
+
+## Executive Summary
+
+GoHunt is a personal job-aggregation tool: it pulls listings from multiple
+sources, scores each one against a candidate profile using the Claude API,
+and ranks results by fit in a small dashboard. It exists for two reasons at
+once — as a real tool used daily to find remote roles worth applying to,
+and as a deliberate exercise in learning production-grade Go by building
+something real instead of following a tutorial. This case study documents
+the pipeline architecture — fetch → dedupe → filter → score → rank — and
+specifically why cheap filtering has to happen _before_ the expensive AI
+scoring step, not after.
+
+## Project Context
+
+The author's day-to-day background is Python/Node backend work. GoHunt was
+built to learn production-grade Go — concurrency, typed SQL, and service
+architecture — by solving a real problem the author actually had:
+generic job boards don't rank listings by fit, and manually triaging dozens
+of postings a day against a candidate profile doesn't scale. The project is
+explicitly both things simultaneously — a learning exercise and a tool in
+daily personal use — and the architecture reflects that: it had to be real
+enough to trust its own output.
+
+## The Problem
+
+Scoring a job listing's fit against a candidate profile with an LLM is not
+free — every call costs money and time. Running that scoring step against
+every listing from every source, including obviously irrelevant or stale
+postings, wastes both. The engineering problem is a pipeline design
+problem: filter out what obviously doesn't matter _before_ paying for the
+expensive step, without filtering so aggressively that a real match gets
+dropped before it's ever scored.
+
+## Constraints
+
+- Single developer, single user — no budget or need for multi-user auth
+  or infrastructure at this stage.
+- Real cost per AI scoring call — the Claude API isn't free, so the
+  pipeline's filtering step has to actually reduce the volume reaching it.
+- Sources vary in reliability and structure (Remotive's API vs. six
+  separate Greenhouse job boards), so fetching has to tolerate one source
+  failing without losing the others.
+
+## Requirements
+
+### Functional
+
+- Aggregate job listings from multiple sources
+- Score each listing's fit against a candidate profile
+- Rank and present results in a dashboard
+- Track applications through a pipeline (New → Applied → Interview → Offer → Rejected)
+
+### Engineering
+
+- Deduplicate listings across sources
+- Bound the cost of AI scoring by filtering before it runs
+- Tolerate a single source's failure without aborting the whole fetch
+- Keep stored, fetched, and API-exposed job data as distinct, type-safe shapes
+
+## Investigation
+
+The earliest design decision was language and stack, not architecture: Go
+and Fiber were chosen specifically because they were unfamiliar — the
+point was to learn them by building something with real, non-trivial
+concurrency (a worker pool fetching from multiple sources at once) rather
+than a toy project. Once the language was settled, the pipeline shape
+followed from the cost constraint above: a five-dimension AI scoring step
+is too expensive to run unconditionally, so an inexpensive Go-only pass
+(keyword and staleness filtering) had to exist specifically to gate what
+reaches it.
+
+## Architecture
+
+The system is a five-stage pipeline: **fetch → dedupe → filter → score →
+rank** — and the order of the last two is the one structural fact worth
+seeing before the prose, since it's what keeps the expensive step cheap
+enough to run at all:
+
+```
+Remotive API ─┐
+Greenhouse ×6 ─┼──▶ Worker Pool ──▶ Dedupe (DB UNIQUE)
+               │      (concurrent,
+               │       one source failing
+               │       doesn't abort the rest)
+               ▼
+        Cheap Go-only Filter (keyword + staleness)
+               │
+               │  only what survives the filter reaches here
+               ▼
+        Claude API Scoring (5 dimensions, 0–100)
+               │
+               ▼
+             Rank ──▶ Dashboard
+```
+
+Fetching runs through a bounded worker pool that queries Remotive's API and
+six separate Greenhouse job boards concurrently. Each source implements a
+common `JobSource` interface, and — deliberately — the worker pool itself
+also satisfies that same interface, so the pool composes with individual
+sources without the caller needing to know the difference. One source
+failing doesn't abort the batch; the others still return.
+
+Deduplication happens at the database level: jobs are hashed on normalized
+title/company/location, and a `UNIQUE` constraint with `ON CONFLICT DO
+NOTHING` does the actual deduplication work rather than application code
+checking for duplicates before inserting.
+
+Filtering is a cheap, Go-only pass — keyword matching against the title and
+a staleness cutoff (30/90 days) — that runs _before_ anything is sent to
+the AI scoring step, which is the architectural decision the rest of this
+system exists to support (see Engineering Decisions).
+
+Scoring calls the Claude API to evaluate five dimensions per listing — role
+match, skill overlap, seniority fit, stack alignment, and location
+eligibility — each scored 0–20, for a total 0–100 fit score.
+
+Ranking sorts the scored feed by fit, and a small dashboard lets the user
+track applications through a status pipeline.
+
+## Engineering Decisions
+
+### Decision: Filter Before Scoring, Not After
+
+**Alternatives Considered:** Scoring every fetched listing with the Claude
+API, then filtering or sorting the results afterward.
+
+**Trade-offs:** The keyword/staleness filter is coarse — it can only look
+at a title and a date, not the full listing — so it will occasionally let
+through something the AI scoring step would have rejected, or (more
+conservatively, by design) let through more than strictly necessary rather
+than risk dropping a real match before it's ever seen by the scorer.
+
+**Rationale:** AI scoring is the expensive step in this pipeline, in both
+latency and real API cost. Filtering has to happen before it runs, or the
+cost scales with every listing fetched instead of every listing worth
+evaluating. The filter is deliberately kept crude (title-only keyword
+matching) rather than more aggressive, specifically to avoid the failure
+mode of silently dropping a valid role before a human — or the AI — ever
+sees it.
+
+### Decision: Database-Level Deduplication via Unique Constraint
+
+**Alternatives Considered:** Checking for existing entries in application
+code before each insert.
+
+**Trade-offs:** Deduplication logic lives in the schema rather than being
+visible in application code.
+
+**Rationale:** A `UNIQUE` constraint with `ON CONFLICT DO NOTHING` can't be
+bypassed by a bug in a future code path the way an application-level check
+can — the database enforces the invariant unconditionally, for every
+writer, not just the one the original author remembered to update.
+
+### Decision: sqlc for Type-Safe SQL
+
+**Alternatives Considered:** An ORM, or hand-written SQL with manual struct
+mapping.
+
+**Trade-offs:** Every query has to be written in SQL and regenerated
+through `sqlc`, rather than expressed through an ORM's query builder.
+
+**Rationale:** `sqlc` validates every query against the actual schema at
+build time — a query referencing a column that doesn't exist, or returning
+a shape the calling code doesn't expect, fails the build instead of failing
+at runtime against a real request.
+
+### Decision: Separate DTOs for Fetched, Stored, and API-Exposed Job Data
+
+**Alternatives Considered:** Using one shared struct for a job listing
+across fetching, storage, and the API response.
+
+**Trade-offs:** More types to maintain, and an explicit mapping step
+between each boundary.
+
+**Rationale:** What a source returns, what the database stores, and what
+the API exposes are three different concerns with three different reasons
+to change — collapsing them into one type means a change motivated by one
+concern (say, a new field a source starts returning) can silently leak into
+another (the API contract) without anyone deciding that should happen.
+
+## Implementation
+
+The backend is Go 1.22+ with Fiber v2, PostgreSQL accessed through
+`sqlc`/`pgx` with `golang-migrate`-managed schema, and `robfig/cron` for
+scheduling fetch runs. The frontend dashboard is Next.js (App Router) with
+TypeScript and Tailwind. CI runs `go vet`, a build, and `go test -race` on
+every change via GitHub Actions — the race flag specifically because the
+fetch worker pool is the one genuinely concurrent piece of this system, and
+a race condition there would be the kind of bug that only shows up under
+real, unpredictable timing.
+
+## Validation
+
+The worker pool's concurrency is validated by running its tests under
+`go test -race` in CI, not just by code review — the same discipline the
+task's own engineering standard asks for evidence over intuition. External
+API calls (both job sources and the Claude scoring API) are tested against
+`httptest` mock servers rather than live calls, so the test suite runs
+deterministically and offline. Database constraints (unique hashes, foreign
+keys, `CHECK` constraints) are enforced by the schema itself, and `sqlc`
+validates every query against that schema at build time. No formal
+accuracy benchmark for the AI scoring step (e.g., a labeled dataset
+measuring how often the 0–100 fit score matches a human's own judgment) has
+been built — the scoring step's real validation today is that the tool has
+been in daily personal use and its rankings have been useful enough to keep
+using it, which is evidence of practical utility, not a measured accuracy
+number.
+
+## Challenges Encountered
+
+Greenhouse board pagination truncates results for larger boards — the
+fetcher doesn't yet walk every page of a very large board, so some listings
+from high-volume Greenhouse boards are missed. This is a known, currently
+accepted limitation rather than a resolved one (see Trade-offs and Future
+Improvements). Location eligibility, one of the five AI-scored dimensions,
+is inferred from listing text rather than guaranteed — a listing that
+doesn't state its eligibility clearly can be scored on an inference that
+turns out to be wrong.
+
+## Trade-offs
+
+<Callout type="trade-off">
+  Filtering before scoring trades a small amount of recall (a real match can be
+  missed by a coarse, title-only keyword filter) for keeping every AI scoring
+  call paid for by a listing already worth evaluating. This holds as long as the
+  tool stays single-user, paying for its own API calls — it would need
+  revisiting the moment missing one real match costs more than the AI budget
+  it's protecting.
+</Callout>
+
+The pipeline trades scoring recall for cost control: the crude, title-only
+keyword filter and the decision to run scoring only after that filter mean
+the system will occasionally not surface a role that a more expensive,
+always-on scoring pass would have caught. Given the constraint that this is
+a single-user tool paying for its own API calls, that trade held up in
+practice; it would need revisiting if the tool were ever used somewhere
+missing one real match mattered more than keeping the AI cost bounded. The
+system is also single-user by design — authentication and multi-tenant
+data isolation were deliberately deferred rather than built speculatively
+for a use case that doesn't exist yet.
+
+## Outcome
+
+GoHunt reached a working MVP with its full core loop — fetch, dedupe,
+filter, score, rank — complete and in daily personal use, across 28
+commits. It is actively used to find and track real job applications today.
+No formal accuracy or performance benchmark has been published (see
+Validation); the outcome evidence available is real, sustained daily use
+rather than a measured metric.
+
+## Lessons Learned
+
+Gating an expensive step behind a cheap one is a pipeline design decision,
+not just a cost optimization — it changes what "correct" means for the
+cheap step: a filter that only has to be _conservative_ (let through
+anything plausible) is a very different, and much easier, thing to build
+correctly than a filter that has to be _precise_ (make the final call).
+Building the crude filter deliberately conservative, rather than trying to
+make it smarter, was the right scope for what it actually needed to do.
+
+## Future Improvements
+
+Walk full pagination on large Greenhouse boards instead of truncating.
+Add ATS coverage beyond Remotive and Greenhouse (Lever and Ashby are not
+yet implemented). Build a real accuracy evaluation for the AI scoring step
+— a small labeled set of listings with a human-judged fit score to compare
+against the model's — so the scoring step's usefulness moves from "used
+daily" to a measured result.

@@ -55,6 +55,7 @@ import { extractHeadings } from "@/lib/content/toc";
 import {
   resolveRelatedLearning,
   resolvePreviousNext,
+  hasRelatedLearningContent,
 } from "@/lib/content/relationships";
 import {
   PLACEHOLDER_TOPICS,
@@ -243,7 +244,22 @@ export default async function KnowledgeSlugPage({
         }
         tableOfContents={<TableOfContents headings={headings} />}
         body={<ArticleBody source={article.body} headings={headings} />}
-        relatedLearning={<RelatedLearning groups={relatedLearningGroups} />}
+        relatedLearning={
+          // Task 5.7 RC refinement #2: pass no element at all — not an
+          // element that would render `null` — when there's nothing here,
+          // so `DocumentLayout`'s existing `{relatedLearning && <Section>}`
+          // check (which only sees whether the *prop* is truthy, not
+          // whether it would render anything) actually omits the region
+          // rather than rendering an empty, landmarked `<section>`. Same
+          // "no trace when absent" contract `seriesBanner` already gets
+          // from its own `metadata.series && (...)` conditional above —
+          // `RelatedLearning` still keeps its own internal check too
+          // (`hasRelatedLearningContent`), so this remains correct even for
+          // a caller that doesn't pre-check.
+          hasRelatedLearningContent(relatedLearningGroups) ? (
+            <RelatedLearning groups={relatedLearningGroups} />
+          ) : undefined
+        }
         previousNext={
           <PreviousNext
             previous={previousNext.previous}

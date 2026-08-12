@@ -78,9 +78,10 @@ import Link from "next/link";
 
 import { Stack } from "@/components/layout/stack";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import type {
-  RelatedLearningGroups,
-  ResolvedArticleSummary,
+import {
+  hasRelatedLearningContent,
+  type RelatedLearningGroups,
+  type ResolvedArticleSummary,
 } from "@/lib/content/relationships";
 
 function RelatedArticleCard({ article }: { article: ResolvedArticleSummary }) {
@@ -163,17 +164,13 @@ function RelatedLearningGroup({
 }
 
 export function RelatedLearning({ groups }: { groups: RelatedLearningGroups }) {
-  const hasContent =
-    groups.prerequisites.length > 0 ||
-    groups.continueLearning.length > 0 ||
-    groups.relatedConcepts.length > 0 ||
-    groups.sameTopic.length > 0;
-
   // A genuinely unconnected article — no prerequisites, no series, no
   // relatedContent, and no sibling in its own topic — renders nothing here
   // rather than an empty "Related Learning" heading over four empty
-  // groups.
-  if (!hasContent) return null;
+  // groups. Shared with the route's own pre-render check (Task 5.7 RC
+  // refinement #2) via `hasRelatedLearningContent()` — one definition of
+  // "empty," not two that could drift apart.
+  if (!hasRelatedLearningContent(groups)) return null;
 
   return (
     <Stack gap="lg">

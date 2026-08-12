@@ -26,6 +26,19 @@
  * its own copies of case study data, only pointers into the one collection
  * that owns it, per docs/29 §4/§5's single-source-of-truth requirement.
  *
+ * Task 5.7's final refinement pass added Haya and Cookeaze to two existing
+ * themes below — no new theme was invented for either. Both additions were
+ * checked against each project's real case study content before being
+ * added, the same evidence discipline `placeholder-work.ts` documents for
+ * the entries themselves: Haya joins Backend Architecture because its case
+ * study documents real service/API design (the analysis pipeline, the
+ * access-control model); Cookeaze joins both Backend Architecture and
+ * Distributed Systems, the latter specifically because its case study's
+ * central engineering problem — reconciling wallet state once two
+ * independent processes (a webhook and a poller) can both try to resolve
+ * the same transaction — is exactly what that theme's own description
+ * already names, not a stretch to fit it in.
+ *
  * `EngineeringLessonEntry.relatedKnowledge` is what makes docs/29 §6
  * ("Engineering Lessons as the Bridge") concrete rather than aspirational:
  * every lesson below links to a real, already-existing entry from
@@ -36,6 +49,29 @@
  * line with the same section's "not every lesson becomes an article, but
  * every article may originate from one of these lessons" — the lesson is
  * shown as evidence-backed, not asserted from nowhere.
+ *
+ * Task 5.7's final refinement pass resolved all three `relatedKnowledge`
+ * links, which previously pointed at Knowledge articles that didn't exist
+ * — each was evaluated on its own merits, not defaulted to "just create
+ * something":
+ *
+ * - **Money as floating point** and **optimistic vs pessimistic locking**
+ *   both cleared the bar — established, teachable, general engineering
+ *   concepts, each directly grounded in a real, already-documented VaultPay
+ *   decision (integer-cents arithmetic, pessimistic row locking). Both now
+ *   have real articles at the exact hrefs already listed below; only
+ *   `content/knowledge/` gained two files, nothing here changed for them.
+ * - **"An API's contract outlives whatever framework built it"** (the
+ *   original GoHunt entry, linking to `/knowledge/understanding-apis`) did
+ *   not clear the bar on inspection — too broad a claim for the specific,
+ *   narrower evidence GoHunt's case study actually supports. Rather than
+ *   write a thin article to match a vague lesson, the lesson itself was
+ *   replaced with GoHunt's real, precisely-evidenced insight (its actual
+ *   "Separate DTOs for Fetched, Stored, and API-Exposed Job Data" decision,
+ *   already documented in `content/work/gohunt.mdx`), paired with a new
+ *   article scoped tightly to that same insight. `sourceProject` stays
+ *   "GoHunt" — this is a correction to what the lesson claims, not a swap
+ *   to a different project.
  */
 
 export interface EngineeringThemeEntry {
@@ -52,13 +88,18 @@ export const PLACEHOLDER_ARCHITECTURE_HIGHLIGHTS: EngineeringThemeEntry[] = [
     relatedCaseStudies: [
       { title: "VaultPay", href: "/work/vaultpay" },
       { title: "GoHunt", href: "/work/gohunt" },
+      { title: "Haya", href: "/work/haya" },
+      { title: "Cookeaze", href: "/work/cookeaze" },
     ],
   },
   {
     title: "Distributed Systems",
     description:
       "Keeping state consistent and correct once more than one process can touch it at the same time.",
-    relatedCaseStudies: [{ title: "VaultPay", href: "/work/vaultpay" }],
+    relatedCaseStudies: [
+      { title: "VaultPay", href: "/work/vaultpay" },
+      { title: "Cookeaze", href: "/work/cookeaze" },
+    ],
   },
   {
     title: "Performance",
@@ -95,11 +136,12 @@ export const PLACEHOLDER_ENGINEERING_LESSONS: EngineeringLessonEntry[] = [
   },
   {
     lesson:
-      "An API's contract outlives whatever framework built it — design the shape first, the implementation second.",
+      "What a service fetches, stores, and exposes are three different concerns — one shared type lets a change in one silently leak into the others.",
     sourceProject: "GoHunt",
     relatedKnowledge: {
-      label: "Understanding APIs Before You Build One",
-      href: "/knowledge/understanding-apis",
+      label:
+        "Data Transfer Objects: Why Fetched, Stored, and Exposed Data Need Different Types",
+      href: "/knowledge/data-transfer-objects",
     },
   },
 ];

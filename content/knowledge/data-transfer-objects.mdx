@@ -1,0 +1,189 @@
+---
+title: "Data Transfer Objects: Why Fetched, Stored, and Exposed Data Need Different Types"
+description: "What a service receives from the outside world, what it persists, and what it exposes to its own callers are three different concerns — and collapsing them into one type lets a change in one leak silently into the others."
+topic: "architecture"
+publishedAt: "2026-08-12"
+tags: ["api-design", "data-modeling", "architecture"]
+difficulty: "intermediate"
+---
+
+## Introduction
+
+It's tempting to define one struct or class for "a Job" (or "a User," or
+"an Order") and use it everywhere — parsing an external API's response
+into it, saving it to the database with it, and returning it from your own
+API with it. It works, right up until the external API adds a field you
+don't want to store, or your database schema needs a column your public
+API shouldn't expose, and now one type is trying to serve three
+incompatible purposes at once.
+
+## The Problem
+
+Three genuinely different concerns get conflated when one type represents
+all of them: **what an external source sent you** (out of your control,
+can change without warning), **what you choose to persist** (your own
+schema, your own decision), and **what you expose to your own callers**
+(your own public contract, which you want to change deliberately, not
+accidentally). A field added to the external source's response, or a
+column added for an internal purpose, has no reason to automatically
+become part of your public API — but if all three share one type, it
+does, whether that was intended or not.
+
+## The Core Concept
+
+A Data Transfer Object (DTO) is a plain data structure whose only job is
+to carry data across one specific boundary — nothing more. Instead of one
+type serving fetch, storage, and exposure simultaneously, each boundary
+gets its own: a type shaped like what an external source actually sends,
+a type shaped like what you persist, and a type shaped like what you
+deliberately choose to expose — with an explicit mapping step between
+each one.
+
+## Visual Model
+
+```
+External Source          Your Database             Your API
+   (fetched)      ──▶       (stored)        ──▶      (exposed)
+                map()                      map()
+
+FetchedJobDTO          StoredJob (schema)         PublicJobDTO
+{                      {                          {
+  id: string,            id: uuid,                  id: string,
+  title: string,         title: string,              title: string,
+  raw_html: string,      title_normalized,           company: string,
+  source_meta: {...}     source: string,             postedAt: string
+}                        fetched_at: datetime,      }
+                         internal_notes: text
+                       }
+```
+
+Each type only carries what that boundary actually needs — `raw_html` and
+`source_meta` never reach storage; `internal_notes` never reaches the
+public API — because each boundary has its own type, not because someone
+remembered to filter a shared one every time.
+
+## Implementation
+
+### Without DTOs — One Type, Three Jobs
+
+```ts
+interface Job {
+  id: string;
+  title: string;
+  raw_html: string; // only meaningful right after fetching
+  internal_notes?: string; // only meaningful internally
+  postedAt: string;
+}
+
+// Fetching, storing, and the public API all pass this same shape around —
+// a new internal-only field added here is now visible to API consumers
+// unless someone remembers to strip it, every time, at every call site.
+```
+
+### With DTOs — One Type per Boundary
+
+```ts
+interface FetchedJobDTO {
+  id: string;
+  title: string;
+  raw_html: string;
+  source_meta: Record<string, unknown>;
+}
+
+interface StoredJob {
+  id: string;
+  title: string;
+  titleNormalized: string;
+  source: string;
+  fetchedAt: Date;
+  internalNotes?: string;
+}
+
+interface PublicJobDTO {
+  id: string;
+  title: string;
+  company: string;
+  postedAt: string;
+}
+
+function toStoredJob(fetched: FetchedJobDTO): StoredJob {
+  /* ... */
+}
+function toPublicJobDTO(stored: StoredJob): PublicJobDTO {
+  /* ... */
+}
+```
+
+A field added to `StoredJob` for an internal reason (an audit timestamp,
+an internal flag) simply doesn't exist on `PublicJobDTO` unless the
+mapping function is deliberately updated to include it — the omission is
+the default, not something that has to be remembered.
+
+## Trade-offs
+
+**Advantages**
+
+- A change at one boundary (the external source adds a field, an internal
+  column is added) can't silently leak into another boundary's contract.
+- Each type documents, by its own shape, exactly what that boundary
+  actually needs — no guessing which fields on a shared type are "really"
+  used where.
+- The public API's shape is a deliberate choice made at the mapping
+  function, not an accident of whatever the database schema happens to
+  contain.
+
+**Disadvantages**
+
+- More types to define and keep in sync, and an explicit mapping function
+  between each pair.
+- For a genuinely simple, single-boundary case, the extra types can be
+  more ceremony than the problem warrants.
+
+**When not to use it**
+
+A small internal tool with one boundary and no external consumers may not
+need the separation — the risk DTOs guard against (an unrelated change
+leaking across a boundary) is proportional to how many independent things
+depend on that boundary staying stable. A public API, or any system
+ingesting data it doesn't control, is exactly where that risk is real.
+
+## Common Mistakes
+
+**Defining the DTOs but skipping the mapping function.** Passing a stored
+entity directly to an API response "just this once, it's basically the
+same shape" reintroduces exactly the coupling DTOs exist to prevent — the
+next schema change now has nothing stopping it from reaching the public
+contract.
+
+**Making the public DTO a strict subset of the stored type instead of its
+own considered shape.** A public contract should be designed for what
+callers need, not derived by mechanically removing "the internal-looking
+fields" from whatever the storage type happens to contain.
+
+## Real-world Examples
+
+Any system that ingests data from an external API and re-exposes some of
+it through its own API — a job aggregator normalizing listings from
+several job boards, a payments platform wrapping a card network's
+response format in its own stable contract — needs this separation for
+the same reason: the external source's shape and internal storage details
+are not things external callers of _your_ API should be coupled to.
+
+## Key Takeaways
+
+- What you fetch, what you store, and what you expose are three different
+  concerns, each with its own reason to change independently of the
+  others.
+- Collapsing them into one shared type means a change to any one of them
+  can silently become a change to all three.
+- An explicit mapping function between each boundary's type is what makes
+  the separation real, not just documented — skipping it re-couples what
+  the separate types were meant to decouple.
+
+## Related Learning
+
+This is the same discipline API versioning and backward compatibility rely
+on more broadly — a public contract that changes only when someone
+deliberately decides it should, not as a side effect of an unrelated
+internal change. Browse more of the [Architecture topic](/knowledge/architecture)
+for related reading on system boundaries and API design.

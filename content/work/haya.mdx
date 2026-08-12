@@ -1,0 +1,367 @@
+---
+title: "Haya: An AI-Powered UX Analysis Platform, Built for Concurrency and Trust"
+description: "Turning a website URL into a structured UX and conversion audit — and building the concurrency control, payment gating, and access-control model that let a single-page AI tool grow into a multi-tenant platform."
+publishedAt: "2025-10-08"
+tags: ["backend", "ai", "concurrency", "payments", "platform"]
+technologies:
+  [
+    "Node.js",
+    "TypeScript",
+    "Express",
+    "MongoDB",
+    "Redis",
+    "BullMQ",
+    "Puppeteer",
+    "OpenAI GPT-4o",
+  ]
+difficulty: "advanced"
+domain: "Platform Engineering"
+status: "Completed"
+timeline: "October 2025 – ongoing, 2026 (110+ commits)"
+relatedContent: ["how-jwt-works"]
+engineeringLog: []
+---
+
+## Executive Summary
+
+Haya accepts a website URL, uses a headless browser to visually render and
+section the page, captures screenshots per section, and feeds them to
+GPT-4o's vision model to produce a structured UX and conversion-rate
+audit — what's wrong with this hero section, this footer, this checkout
+flow, and why. What started as a single-page analysis tool grew into a
+multi-tenant platform: team workspaces, task assignment, a pay-per-analysis
+gate for users past their free quota, and — later — a full subscription
+tier replacing that gate entirely. This case study documents the analysis
+pipeline's concurrency design and the access-control model's own
+evolution, including a real decision reversal.
+
+## Project Context
+
+A UX audit is normally either a manual expert review (slow, expensive) or a
+generic automated checklist (fast, shallow — it can tell you a page is
+missing alt text, not that its hero section buries the value proposition).
+Haya's premise is that a vision-capable LLM, given an actual screenshot of
+a real section of a real page rather than raw HTML or text, can produce
+the kind of specific, contextual feedback a human reviewer would — at a
+fraction of the cost and turnaround time, and repeatably enough to review
+every page section of every page on a site rather than a spot check.
+
+## The Problem
+
+Two problems compound: analyzing one page section is slow and expensive
+(a headless browser render plus a vision-model call per section, times
+however many sections a page has, times however many pages a site has),
+and doing that work synchronously inside an HTTP request would make the
+API unusable — a multi-page audit can take minutes. The engineering
+problem is building a pipeline that can fan work out for speed without
+either overwhelming the browser/AI/upload capacity it depends on, or
+making a requester wait on a blocking HTTP call for something that
+legitimately takes minutes.
+
+## Constraints
+
+- Solo-built initially, evolving into a small team over time.
+- Every page section needs its own headless-browser render, screenshot
+  upload, and vision-model call — each of which has a real cost and a real
+  concurrency ceiling (API rate limits, browser memory, upload bandwidth).
+- Free-tier usage needed a real anti-abuse mechanism from day one, without
+  either blocking legitimate signups or building a heavyweight fraud
+  system before there was any usage data to justify one.
+
+## Requirements
+
+### Functional
+
+- Submit a URL, get a structured per-section UX/CRO report with
+  screenshots
+- Support both single-page and multi-page (site-crawl) analysis
+- Team workspaces: invite members, assign review tasks against specific
+  report sections, comment collaboratively
+- Gate usage beyond a free quota
+
+### Engineering
+
+- Bounded, parallel processing — not sequential, not unbounded
+- Idempotent, resumable analysis jobs (a crashed worker shouldn't lose
+  progress or duplicate a charge)
+- An access-control model that could evolve without a breaking rewrite
+
+## Investigation
+
+The earliest design question was where a multi-page, multi-section
+analysis job should run: inside the request/response cycle, or as
+background work. A synchronous design was rejected almost immediately once
+early testing showed a single multi-page audit could take several minutes
+— long past any reasonable HTTP timeout, and long enough that a client
+holding a connection open the whole time is a bad API regardless of
+timeout limits. That pushed the design toward a job queue with progressive
+status, which in turn raised the real question this case study's
+architecture section answers: once work is queued and parallelized, what
+stops it from parallelizing too aggressively against a fixed-capacity
+resource (a fixed pool of browsers, a rate-limited AI API, an upload
+service with its own concurrency ceiling)?
+
+## Architecture
+
+```
+Client
+  │  POST /analyze { url }
+  ▼
+Access Control (auth, quota/payment check)
+  │
+  ▼
+Analysis record (MongoDB, status: PENDING) ── 202 Accepted, analysisId
+  │
+  ▼
+BullMQ Queue (Redis-backed)
+  │
+  ▼
+Background Worker
+  ├─ Acquire browser from a fixed-size pool
+  ├─ Discover pages (site crawl, bounded)
+  └─ For each page → discover sections → for each section:
+        screenshot (sequential — one browser tab)
+          │
+          ├──▶ Cloudinary upload   (bounded parallel: semaphore-limited)
+          └──▶ GPT-4o Vision call  (bounded parallel: semaphore-limited)
+                    │
+                    ▼
+        Progressive write to MongoDB (status visible mid-job)
+  │
+  ▼
+status → COMPLETED
+Client polls GET /analyze/:id → sees sections complete progressively
+```
+
+Screenshot capture within a single browser tab is necessarily sequential —
+a browser can only be in one place at a time — but the two expensive steps
+that follow each screenshot (uploading it, and sending it for AI analysis)
+don't depend on each other and don't depend on the _next_ section's
+screenshot being ready. Those run in parallel, each bounded by its own
+concurrency limit, and each result is written back to the database as soon
+as it's ready rather than batched at the end — which is what lets a client
+polling the job see sections complete one at a time instead of getting
+nothing until the whole multi-page audit finishes.
+
+## Engineering Decisions
+
+### Decision: A Fixed-Size Browser Pool, Not a Browser Per Job
+
+**Alternatives Considered:** Launching a fresh headless browser instance
+per analysis job.
+
+**Trade-offs:** Jobs queue for a browser under heavy load instead of each
+getting one instantly; the pool needs its own lifecycle management
+(replacing crashed instances).
+
+**Rationale:** A headless Chromium instance is expensive to start and
+memory-heavy to keep running. A small, fixed pool that jobs acquire from
+and release back to bounds memory and startup cost predictably, at the
+price of jobs occasionally waiting for a free instance — a far better
+failure mode than the process running out of memory because job volume
+briefly spiked.
+
+### Decision: Separate Concurrency Limits for Uploads and AI Calls
+
+**Alternatives Considered:** One shared concurrency limit for all
+"expensive" work per job.
+
+**Trade-offs:** Two limits to tune instead of one.
+
+**Rationale:** Image uploads and AI vision calls have different real-world
+capacity ceilings and different costs — a shared limit would mean whichever
+of the two is more prone to saturating governs both, wasting the headroom
+the other one actually has. Two independent semaphores let each resource
+run at its own real capacity instead of the more conservative of the two.
+
+### Decision: Progressive Database Writes Instead of a Single Final Write
+
+**Alternatives Considered:** Accumulating all section results in memory
+and writing the completed report once at the end.
+
+**Trade-offs:** More database writes per job.
+
+**Rationale:** A multi-page audit can take minutes; a client shouldn't have
+to wait for all of it to see any of it. Writing each section's result to
+the database as soon as it's ready — not after the whole job finishes —
+is what lets the frontend render completed sections while the rest of the
+audit is still running, and means a worker crash partway through doesn't
+lose the sections that already completed.
+
+### Decision: Three Parallel Authentication Methods on One Account Model
+
+**Alternatives Considered:** Supporting a single auth method (email/password
+only) at launch, adding others later.
+
+**Trade-offs:** More auth-flow complexity to build and maintain up front —
+wallet signature verification, OAuth, and password auth all have to
+coexist safely on the same user record.
+
+**Rationale:** A crypto-payment product's users skew toward already having
+a wallet; a broader UX-tooling audience skews toward email or Google.
+Building all three from the start — and letting an account link more than
+one — meant the choice of how to sign up never had to become a growth
+blocker later.
+
+JWT access tokens (short-lived, 15 minutes) and longer-lived refresh
+tokens (stored server-side so they can be revoked on logout) sit under all
+three auth methods once a session exists — the same mechanism [used to
+verify a claim without a database round trip per request](/knowledge/how-jwt-works)
+covers wallet, email, and Google sessions identically once the initial
+handshake differs.
+
+### Decision: A Pay-Per-Analysis Gate, Later Replaced by Subscription Quotas
+
+**Alternatives Considered (at the time of the original decision):** A
+fully free product with no usage limit; a hard signup wall (invite-only
+beta) with no payment mechanism at all.
+
+**Trade-offs (original):** Building on-chain payment verification is real
+engineering work for what was, at the time, an unvalidated product.
+
+**Rationale (original):** An invite-gated free beta let usage grow without
+either an unbounded cost exposure or premature payment infrastructure — a
+reasonable way to validate the product first. A Solana/USDC micropayment
+gate was added for usage beyond a free quota once real usage existed to
+size that quota against.
+
+**This decision was later reversed — see Project Evolution below.**
+
+## Implementation
+
+The stack is Node.js/TypeScript with Express 5, MongoDB via Mongoose,
+Redis for both caching and the BullMQ job queue, Puppeteer for headless
+browser automation, and GPT-4o (vision + JSON mode) for the analysis
+itself. Rate limiting is Redis-backed (distributed, survives restarts) at
+several tiers: a global per-IP limit, a stricter limit for IPs that trip
+security-probe detection, a stricter limit on auth endpoints specifically,
+and a per-user limit on analysis submission. Structured logging (Winston,
+daily-rotating files) covers the request lifecycle, and container logs are
+collected behind an authenticated viewer for production debugging.
+
+## Validation
+
+Concurrency-sensitive paths (the payment-verification flow, quota
+enforcement, device-fingerprint-based abuse detection, webhook handling)
+are covered by an automated test suite exercised in CI on every push and
+pull request against `main`, alongside lint and a full build — merges to
+`main` that pass all three deploy automatically. The subscription checkout
+flow specifically was verified end-to-end against a live server with a
+real wallet signing and sending a real on-chain USDC transfer (on a test
+network, not mainnet funds) — quote, sign, verify, activate — not just
+exercised against mocks.
+
+## Challenges Encountered
+
+Running headless Chromium reliably inside Docker required real
+container-level tuning (shared memory, sandboxing flags) beyond what runs
+locally without a container — a category of "works on my machine" problem
+specific to browser automation rather than typical backend code. Separately,
+verifying a Solana payment transaction against RPC calls that can
+themselves be flaky needed retry/backoff and a `PENDING` intermediate
+state added after the fact, once real-world RPC behavior under load showed
+the original single-attempt verification wasn't resilient enough.
+
+## Trade-offs
+
+Bounding upload and AI-call concurrency independently, rather than with
+one shared limit, trades tuning simplicity for throughput — each resource
+runs closer to its own real capacity instead of both being governed by
+whichever is more conservative. This holds as long as the two resources'
+capacities stay meaningfully different, which they do today (image
+uploads and LLM vision calls have very different latency and rate-limit
+profiles); if that ever converged, a single shared limit would become the
+simpler, equally correct choice.
+
+## Outcome
+
+The core analysis pipeline (single- and multi-page, screenshot capture,
+bounded-parallel upload and AI scoring, progressive results) is live and
+functioning, alongside team workspaces, task assignment, and — after the
+reversal described below — subscription-based access control. No public
+uptime or throughput figures are published here; the real evidence
+available is a working, evolving production system with an automated test
+suite exercising its highest-risk paths (payments, quota enforcement,
+abuse detection) in CI on every change.
+
+## Lessons Learned
+
+Concurrency limits are not one setting — different downstream resources
+(a browser pool, an upload API, an LLM API) have genuinely different real
+capacities, and governing them all with a single limit just means the
+system runs at the speed of whichever is most conservative. Splitting them
+let each resource actually run near its own ceiling. Separately: an access
+control mechanism chosen to solve today's problem (an invite gate to bound
+an unvalidated beta) is allowed to be replaced once the problem it was
+solving changes — see Project Evolution.
+
+## Future Improvements
+
+Continue building out the parts of the platform that are newer and still
+evolving — deeper behavioral analytics beyond the original single-audit
+model, and expanding what the subscription tiers unlock — on the same
+worker-pool and progressive-write foundation this case study documents,
+without a rearchitecture of either.
+
+---
+
+## Project Evolution
+
+### Initial State
+
+At launch, Haya was gated behind a closed, invitation-only beta: every
+registration and login required a valid invitation code, checked before
+the auth handler ran. Beyond the free quota, further usage was gated by a
+Solana/USDC micropayment per analysis, verified on-chain per request.
+
+### Problem / Pressure
+
+An invitation gate is a reasonable way to bound growth during an
+unvalidated beta, but it stops being the right tool once the actual
+problem shifts from "control who can sign up" to "control how much free
+usage a given account can consume" — those are different problems, and a
+gate at the front door doesn't solve free-tier abuse by itself (an invited
+user can still create unlimited free-tier load). As the product matured
+past the closed-beta phase, that mismatch became the real constraint.
+
+### Engineering Decision
+
+The invitation-code gate was removed entirely from the backend — not
+paused, removed, including from the registration and OAuth flows that
+referenced it — and replaced with a tiered subscription model (Free /
+Starter / Growth / Scale) whose free tier is protected by usage quotas and
+device-fingerprint-based abuse detection instead of a signup wall. The
+per-analysis Solana micropayment gate was folded into the same
+subscription checkout flow rather than kept as a separate mechanism.
+
+### Change
+
+Every route and UI surface that referenced the invitation code — the
+register/login forms, the OAuth redirect's carried state, the beta-gate
+redirect on failure — was removed rather than left dormant, specifically
+so no half-migrated state could linger (a partially-removed gate is worse
+than either keeping it fully or removing it fully).
+
+### Observed Result
+
+The subscription checkout flow was verified end-to-end against a live
+server with a real signed on-chain transaction, and the underlying
+payment-verification code was hardened afterward (retry/backoff on RPC
+calls, a `PENDING` intermediate state, the activation step wrapped in a
+database transaction) once that real-world exercise showed where the
+original implementation needed to be more resilient.
+
+### New Understanding
+
+<Callout type="key-insight">
+  An access-control mechanism is not a permanent architectural commitment — it's
+  a decision scoped to the problem the product actually has right now. The
+  invitation gate was right for an unvalidated beta and wrong once the product
+  needed real, metered access control instead — reversing it cleanly, in full,
+  was the correct response to the problem changing.
+</Callout>
+
+The invitation gate was the right tool for an unvalidated beta and the
+wrong tool once the product needed real, metered access control instead.
+Reversing it cleanly (full removal, not a parallel legacy path) kept the
+system from carrying two access-control mechanisms indefinitely.

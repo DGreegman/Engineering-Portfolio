@@ -1,0 +1,304 @@
+---
+title: "VaultPay: A Wallet Ledger Reasoned From First Principles"
+description: "Designing a wallet system around a double-entry, append-only ledger so correctness under concurrency doesn't depend on getting a balance update right every time."
+publishedAt: "2026-08-01"
+tags: ["backend", "concurrency", "payments", "go"]
+technologies: ["Go", "Fiber", "PostgreSQL", "Redis"]
+difficulty: "advanced"
+domain: "Backend Infrastructure"
+status: "In Progress"
+timeline: "Ongoing, 2026 — Phase 2 of a 6-phase roadmap"
+relatedContent: []
+engineeringLog: []
+---
+
+## Executive Summary
+
+VaultPay is a wallet system — businesses create digital wallets for their
+users, move money between them, and integrate payments through a documented
+API. It is deliberately built as a **fictional** Nigerian fintech: no real
+money moves through it, no real customer data is stored, and it connects to
+no live bank or payment rail. Every external integration is mocked.
+
+The point of building it fictional is what it frees the project to focus
+on: not "does this look like a fintech," but "does this hold up to the
+engineering standard a real one would have to." The system is designed
+around one governing rule — a wallet balance is never a column you update,
+it's a number you compute from an append-only ledger — and this case study
+documents why that rule exists and what it costs to hold to it.
+
+## Project Context
+
+Most portfolio backends prove the author can wire CRUD endpoints to a
+database. They rarely prove the author understands the failure modes unique
+to systems that move money: double-spends under concurrency, duplicate
+charges from retried requests, balances that silently drift from reality,
+and fraud vectors that only appear under adversarial use. VaultPay exists
+specifically to be built to the standard a real Nigerian fintech would hold
+itself to — correctness, auditability, concurrency safety, fraud control,
+and observability — reasoned from first principles rather than copied from
+a tutorial.
+
+## The Problem
+
+A wallet balance that can be updated directly (`UPDATE wallets SET balance =
+balance - 100`) is a balance that can silently drift from reality: a crashed
+request, a retried request, or two concurrent requests against the same row
+can each leave the ledger in a state nobody can fully reconstruct after the
+fact. The engineering problem isn't "move money between two rows" — it's
+"make it possible to prove, after the fact, that every naira the system
+believes exists actually has a paired, auditable origin."
+
+## Constraints
+
+- Solo project, built incrementally in public, not on a fixed deadline.
+- No live bank or payment rail access — every external integration
+  (KYC, bank settlement, card processing) has to be mocked convincingly
+  enough to exercise the real engineering problem anyway.
+- Nigeria-specific settlement and compliance conventions (NIBSS, NDPA 2023,
+  CBN device-binding guidance) needed to shape the design even without a
+  real integration, so the architecture wouldn't have to be redone to
+  become real later.
+
+## Requirements
+
+### Functional
+
+- Wallet creation and balance inquiry
+- Transfers between wallets
+- Payment integration via a documented API
+
+### Engineering
+
+- Balances provably correct from an auditable history, not just "probably right"
+- Safe behavior under concurrent transfers against the same wallet
+- Safe behavior under retried/duplicated requests
+- A path to observability and fraud detection without redesigning the core
+
+## Investigation
+
+The first design question was where correctness should actually live: in
+careful application code that updates a `balance` column correctly every
+time, or in a data model that makes an incorrect balance structurally
+impossible to produce. Application-level carefulness doesn't survive
+concurrency, retries, or a future engineer who doesn't know every invariant
+the original code depended on. A structural guarantee does. That reasoning
+is what settled the core architectural bet before any endpoint was written:
+wallets would never be mutated directly — every movement of money would be
+recorded as a paired ledger entry, and a wallet's balance would be a
+**projection** computed from that ledger, not a field anyone can write to.
+
+## Architecture
+
+```
+HTTP → API (Fiber)
+       ↓
+   Domain Services (auth, wallets, transactions, fraud, KYC)
+       ↓
+   Ledger Engine
+       ↓
+PostgreSQL (ledger_entries, wallet_balances, idempotency_keys, outbox_events)
+       ↓ [relay poller]
+RabbitMQ → workers (notifications, webhooks)
+```
+
+Requests enter through a Fiber HTTP layer and pass through domain services
+(auth, wallets, transactions, fraud, KYC) before reaching a ledger engine
+that is the only code path allowed to write a money movement. PostgreSQL is
+the single source of truth — `ledger_entries` (the append-only double-entry
+record), `wallet_balances` (the computed projection), `idempotency_keys`,
+and `outbox_events` (for reliably publishing what happened, addressed
+below). Redis exists in this architecture for exactly two things — caching
+and rate-limiting — and is deliberately kept out of anything that
+represents money, for the reason explained in Engineering Decisions below.
+Asynchronous work (notifications, webhooks) is planned to move through
+RabbitMQ in a later phase, consumed from the same outbox the ledger already
+writes to.
+
+## Engineering Decisions
+
+### Decision: Double-Entry, Append-Only Ledger
+
+**Alternatives Considered:** A single mutable `balance` column per wallet,
+updated in place per transaction.
+
+**Trade-offs:** Every balance read now requires either a computed
+projection or a maintained cache of one, instead of a single row read.
+
+**Rationale:** A balance you can prove is a balance derived from a history
+you can't retroactively edit. Reversals become compensating entries, not
+deletions — the ledger only ever grows, and every entry that ever existed
+is still there to audit. This is the single decision every other one in
+this system exists to support.
+
+<Callout type="key-insight">
+  A wallet balance is never a column you update — it's a number you compute from
+  an append-only ledger. Every other engineering decision in this system exists
+  to protect that one property.
+</Callout>
+
+### Decision: Integer Arithmetic for Money
+
+**Alternatives Considered:** Floating-point or decimal balances.
+
+**Trade-offs:** Every amount has to be converted to and from its smallest
+unit (kobo) at the system's edges.
+
+**Rationale:** ₦5,000 is stored as `500000`, never `5000.00` — floating-point
+drift across enough transactions is exactly the kind of silent corruption
+an audit is supposed to catch, and the fix is cheaper before it's a
+production incident than after.
+
+### Decision: Pessimistic Locking for Concurrent Transfers
+
+**Alternatives Considered:** Optimistic concurrency with retry-on-conflict.
+
+**Trade-offs:** A transfer against a wallet another transfer is already
+touching waits, rather than racing ahead and resolving the conflict after
+the fact.
+
+**Rationale:** `SELECT ... FOR UPDATE` blocks a second transfer from
+reading a balance the first hasn't finished changing, so the system fails
+cleanly (the second request waits, then proceeds against the correct
+balance) instead of committing a transfer against a number that was already
+stale the moment it was read. What that looks like for two transfers
+racing against the same wallet:
+
+```
+Transfer A                    Transfer B
+    │                              │
+    ├─ SELECT ... FOR UPDATE       │
+    │     (row locked)             │
+    │                              ├─ SELECT ... FOR UPDATE
+    │                              │     (blocks — waits for A)
+    ├─ apply delta, COMMIT         │
+    │     (lock released)          │
+    │                              ├─ (unblocks, reads current balance)
+    │                              ├─ apply delta, COMMIT
+```
+
+Transfer B never reads a stale balance — it simply doesn't get to read
+anything for that wallet until Transfer A has finished with it.
+
+### Decision: Idempotency Keys Stored in PostgreSQL, Not Redis
+
+**Alternatives Considered:** Caching idempotency keys in Redis, the more
+common choice for deduplication.
+
+**Trade-offs:** Idempotency checks now share the database's write path
+instead of a faster, separate cache.
+
+**Rationale:** A Redis key can be evicted. An idempotency key that silently
+disappears and lets a retried transfer through a second time is exactly the
+double-spend this system exists to prevent — so the idempotency check has
+to commit atomically with the ledger write it's guarding, in the same
+database, or it isn't really a guarantee.
+
+### Decision: Transactional Outbox for Downstream Events
+
+**Alternatives Considered:** Publishing to a queue directly from the
+request handler, immediately after writing the ledger.
+
+**Trade-offs:** Downstream consumers (notifications, webhooks) see an event
+slightly after the ledger write commits, via a relay poller, rather than
+immediately.
+
+**Rationale:** If the queue publish happens outside the database
+transaction and fails, the money movement is real but nobody downstream
+ever hears about it — or the reverse. Writing the event to an
+`outbox_events` table in the same transaction as the ledger entry means the
+event's existence is exactly as durable as the money movement it describes.
+
+### Decision: Modular Monolith Over Microservices
+
+**Alternatives Considered:** Splitting wallets, transactions, fraud, and
+KYC into separate services from the start.
+
+**Trade-offs:** All domain services deploy together; a change to one can't
+be shipped independently of the others yet.
+
+**Rationale:** Package boundaries (Go's `internal/`) give real modularity —
+each domain owns its own code and can't reach into another's internals —
+without paying for network calls, distributed transactions, or
+service-to-service auth on a system that doesn't need that complexity at
+its current scale.
+
+## Implementation
+
+The stack is Go 1.22 with the Fiber web framework, PostgreSQL 16 accessed
+through `pgx`/`sqlc` with `golang-migrate`-managed schema, and Redis for
+caching and rate-limiting only. Two health endpoints exist deliberately as
+separate concerns: `/healthz` never checks the database, so a container
+isn't killed for a dependency it doesn't control; `/readyz` does check
+dependencies and returns `503` when one is down, without crashing the
+process. The project is being built in phases — scaffolding, then core
+wallets/auth/transfers, then the double-entry ledger with idempotency and
+concurrency control (the current phase), then the outbox/webhooks/audit
+logging layer, then fraud detection, then KYC tiers, then multi-currency
+support.
+
+## Validation
+
+The documented stack designates Testcontainers for integration testing and
+k6 for load testing. As of this writing, no load-test or benchmark results
+have been published for this system — the concurrency-safety claims above
+describe the architecture's design intent (what the locking and ledger
+model are built to prevent), not a measured result under real concurrent
+load. That measurement is future work, named explicitly in Future
+Improvements below rather than implied here.
+
+## Challenges Encountered
+
+The system has not yet been exposed to production traffic, real adversarial
+use, or a real settlement partner, so there is no honest incident to report
+yet. The one challenge worth naming is a design-time one: reasoning about
+Nigeria-specific settlement conventions (NIBSS's Deferred Net Settlement —
+a transfer shows as immediately visible to the receiving wallet, but
+settles between institutions later) without a live NIBSS integration to
+validate the model against. The response was to model a held/escrow balance
+that mirrors that same immediate-visibility-later-settlement shape using
+mocked accounts, so the ledger design wouldn't need to change if a real
+integration replaces the mock later.
+
+## Trade-offs
+
+Building this fictional, rather than against a real bank integration, trades
+away the ability to claim the system has survived real-world adversarial
+conditions — the fraud, settlement, and compliance modules can only be as
+correct as the mocked rails they're built against. What it buys in exchange
+is the freedom to get the ledger's core correctness properties right first,
+without a live integration's schedule or failure modes dictating the
+architecture before that foundation exists. This holds as long as the
+project's purpose stays "prove the engineering reasoning is sound" rather
+than "operate as a real payments company" — the trade-off would need
+revisiting entirely, not just tuning, the moment a real rail is involved.
+
+## Outcome
+
+VaultPay is a working, phased implementation of a double-entry ledger, not
+yet a completed system — Phase 2 (the ledger, idempotency, and concurrency
+control this case study documents) is the current stage of a six-phase
+roadmap. The honest outcome so far is architectural: a wallet balance in
+this system cannot be produced by anything other than a paired, auditable
+ledger entry, which was the one property the whole design exists to
+guarantee. Whether that guarantee holds under real concurrent load is not
+yet measured (see Validation).
+
+## Lessons Learned
+
+Correctness that depends on every future change getting a mutation right is
+correctness that erodes the moment someone unfamiliar with the invariants
+touches the code. Making the wrong state structurally unrepresentable — a
+balance that can only ever be a projection of a ledger, never a field you
+can write to directly — is a stronger and more maintainable guarantee than
+any amount of application-level care, and it's worth the extra cost of
+computing balances instead of storing them.
+
+## Future Improvements
+
+Complete the remaining roadmap phases: the outbox-driven webhook and audit
+log layer, fraud detection and velocity checks, tiered KYC, and
+multi-currency support (NGN and USD, without FX). Before any of that,
+producing real load-test results (via the k6/Testcontainers setup already
+designated for this) to move the concurrency-safety claims in this case
+study from architectural intent to a measured, evidenced result.

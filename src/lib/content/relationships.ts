@@ -289,6 +289,31 @@ export interface RelatedLearningGroups {
 }
 
 /**
+ * Whether any of the four Related Learning groups has content — the single
+ * definition of "this article has nothing here," shared by `RelatedLearning`
+ * itself (which still must return `null` when this is false, regardless of
+ * what its caller does) and by `app/knowledge/[slug]/page.tsx` (Task 5.7
+ * RC refinement #2), which now checks this *before* deciding whether to
+ * pass a `relatedLearning` element to `DocumentLayout` at all — the same
+ * "resolve once, reuse everywhere" discipline this file already holds
+ * itself to (Principle 3), applied to an emptiness check instead of a
+ * relationship list. See `document-layout.tsx`'s own docstring for why the
+ * caller, not this file or `RelatedLearning`, has to be the one making that
+ * decision: `{relatedLearning && <Section>...}` only sees whether the *prop*
+ * is truthy, never whether the element it wraps would render anything.
+ */
+export function hasRelatedLearningContent(
+  groups: RelatedLearningGroups,
+): boolean {
+  return (
+    groups.prerequisites.length > 0 ||
+    groups.continueLearning.length > 0 ||
+    groups.relatedConcepts.length > 0 ||
+    groups.sameTopic.length > 0
+  );
+}
+
+/**
  * The single entry point that composes all four Related Learning groups
  * for one article — the one place this composition happens, so a future
  * consumer reuses this instead of re-implementing "when does Same Topic

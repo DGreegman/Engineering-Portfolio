@@ -144,9 +144,26 @@ export default async function CaseStudyPage({
       }
       tableOfContents={<TableOfContents headings={headings} />}
       body={<ArticleBody source={caseStudy.body} headings={headings} />}
-      relatedKnowledge={<RelatedKnowledge items={relatedKnowledge} />}
+      relatedKnowledge={
+        // Task 5.7 RC refinement #2: pass no element at all — not an
+        // element that would itself render `null` — when there's nothing
+        // to show, so `DocumentLayout`'s existing `{relatedKnowledge &&
+        // <Section>}` check (which only sees whether the *prop* is
+        // truthy, never whether it would render anything) actually omits
+        // the region instead of rendering an empty, landmarked
+        // `<section aria-label="Related Knowledge">`. `RelatedKnowledge`
+        // itself still keeps its own `items.length === 0` → `null` check
+        // too, so this stays correct even for a caller that doesn't
+        // pre-check — the same belt-and-braces shape
+        // `app/knowledge/[slug]/page.tsx` now applies to `relatedLearning`.
+        relatedKnowledge.length > 0 ? (
+          <RelatedKnowledge items={relatedKnowledge} />
+        ) : undefined
+      }
       engineeringLogs={
-        <RelatedEngineeringLogs items={relatedEngineeringLogs} />
+        relatedEngineeringLogs.length > 0 ? (
+          <RelatedEngineeringLogs items={relatedEngineeringLogs} />
+        ) : undefined
       }
       previousNext={
         <PreviousNext
