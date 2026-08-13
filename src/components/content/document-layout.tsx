@@ -75,6 +75,26 @@
  * nothing here enforces that structurally, the same "trusts its caller"
  * posture every other slot in this component already has.
  *
+ * `relatedWork` (Task 6.2, docs/37-ENGINEERING_LOG_EXPERIENCE.md §12,
+ * docs/38-ENGINEERING_LOG_IMPLEMENTATION_PLAN.md WI-1): the Engineering
+ * Log entry's own closing relationship region — "which Case Study or
+ * Case Studies did this process feed into," resolved by
+ * `resolveRelatedWorkForLog()` (`lib/content/engineering-logs.ts`).
+ * Deliberately a new, fourth closing-relationship slot rather than reusing
+ * `engineeringLogs` (already correctly scoped to the *opposite* direction
+ * of this exact relationship — a Case Study's own outgoing link to its
+ * logs, hardcoded `aria-label="Engineering Logs"`, which would mislabel a
+ * Log entry's incoming link back to Work) or `relatedKnowledge` (already
+ * correctly scoped to a genuinely different relationship — concepts, not
+ * projects). Follows the identical pattern Task 5.3 already established
+ * for `relatedKnowledge`/`engineeringLogs`: its own hardcoded
+ * `aria-label`, its own conditionally-omitted `Section`, no change to any
+ * other slot's behavior. A route passes `relatedWork` alone (Engineering
+ * Log), `relatedKnowledge`/`engineeringLogs` alone (Work), or
+ * `relatedLearning` alone (Knowledge) — the same "trusts its caller,
+ * never expected to mix" posture already stated above, now extended to a
+ * third collection.
+ *
  * Every `?? <PlaceholderRegion />` fallback below is now a defensive-only
  * path, not a "still coming" signal — every real article resolves a topic
  * (required by schema) and has body content, and every route always passes
@@ -145,6 +165,8 @@ export interface DocumentLayoutProps {
   relatedKnowledge?: React.ReactNode;
   /** Case Study only (Task 5.3) — see this file's own docstring. */
   engineeringLogs?: React.ReactNode;
+  /** Engineering Log only (Task 6.2) — see this file's own docstring. */
+  relatedWork?: React.ReactNode;
   previousNext?: React.ReactNode;
 }
 
@@ -157,6 +179,7 @@ export function DocumentLayout({
   relatedLearning,
   relatedKnowledge,
   engineeringLogs,
+  relatedWork,
   previousNext,
 }: DocumentLayoutProps) {
   return (
@@ -220,6 +243,12 @@ export function DocumentLayout({
       {engineeringLogs && (
         <Section aria-label="Engineering Logs" spacing="md" width="full">
           {engineeringLogs}
+        </Section>
+      )}
+
+      {relatedWork && (
+        <Section aria-label="Related Work" spacing="md" width="full">
+          {relatedWork}
         </Section>
       )}
 

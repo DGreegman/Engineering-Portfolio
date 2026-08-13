@@ -76,10 +76,25 @@ type EngineeringLogItem = ContentItem<ArticleFrontmatter>;
  * intent — one editorial ceiling, shared, not two numbers that could drift
  * apart. Changing this value is a design decision that revisits `docs/34`
  * §4, not a routine tuning knob.
+ *
+ * Exported as of Task 6.2 (`docs/38-ENGINEERING_LOG_IMPLEMENTATION_PLAN.md`
+ * WI-2): `engineering-logs.ts`'s own `resolveRelatedWorkForLog()` needs the
+ * identical editorial ceiling for the identical reason — one shared
+ * constant every relationship group in this workspace reads, not a second
+ * number reintroduced at the one call site that happens to live in a
+ * different file.
  */
-const DEFAULT_RELATIONSHIP_LIMIT = 4;
+export const DEFAULT_RELATIONSHIP_LIMIT = 4;
 
-function toCaseStudySummary(item: WorkItem): ResolvedArticleSummary {
+/**
+ * Exported as of Task 6.2 (docs/38 WI-2): `engineering-logs.ts`'s
+ * `resolveRelatedWorkForLog()` needs the identical
+ * `ContentItem<WorkFrontmatter> → ResolvedArticleSummary` mapping this
+ * function already performs for Related Knowledge — the same "one mapping,
+ * not two" reasoning `DEFAULT_RELATIONSHIP_LIMIT`'s own docstring just
+ * gave for the cap, applied here to the shape instead of the number.
+ */
+export function toCaseStudySummary(item: WorkItem): ResolvedArticleSummary {
   return {
     slug: item.slug,
     collection: "work",

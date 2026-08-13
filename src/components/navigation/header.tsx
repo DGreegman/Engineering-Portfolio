@@ -62,14 +62,15 @@ export function Header() {
           <PrimaryNavigation className="hidden lg:block" />
 
           <div className="flex items-center gap-1">
-            {/* title (not just aria-label) so sighted pointer users also
-                see why these look dimmed, not only screen readers. */}
+            {/* Activated for Task 6.4 (docs/42 WI-9) — same render={<a/>}
+                shape the GitHub icon button below already uses, not a new
+                interaction pattern. RSS stays disabled/"(coming soon)"
+                until its own task activates it. */}
             <Button
               variant="ghost"
               size="icon"
-              disabled
-              aria-label="Search (coming soon)"
-              title="Search (coming soon)"
+              nativeButton={false}
+              render={<a href="/search" aria-label="Search" title="Search" />}
             >
               <Search />
             </Button>

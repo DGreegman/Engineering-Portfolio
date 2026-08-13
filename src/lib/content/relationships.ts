@@ -77,7 +77,14 @@ const SAME_TOPIC_FALLBACK_LIMIT = 3;
 
 type KnowledgeItem = ContentItem<KnowledgeFrontmatter>;
 
-function toSummary(item: KnowledgeItem): ResolvedArticleSummary {
+/**
+ * Exported (Task 6.4, `docs/42-SEARCH_CORE_DISCOVERY_IMPLEMENTATION_PLAN.md`
+ * WI-4): `lib/content/search.ts` needs the identical Knowledge → summary
+ * mapping every relationship resolver in this file already uses — the same
+ * "reuse, don't duplicate" precedent `toCaseStudySummary()`
+ * (`case-study-relationships.ts`) already set for Work in Task 6.2.
+ */
+export function toSummary(item: KnowledgeItem): ResolvedArticleSummary {
   return {
     slug: item.slug,
     collection: "knowledge",
