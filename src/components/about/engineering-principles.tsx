@@ -37,7 +37,7 @@ export function EngineeringPrinciples() {
           {ENGINEERING_PRINCIPLES_COPY.introduction.map((paragraph) => (
             <p
               key={paragraph}
-              className="text-body leading-relaxed text-muted-foreground"
+              className="text-body text-justify leading-relaxed text-muted-foreground"
             >
               {paragraph}
             </p>
@@ -51,7 +51,7 @@ export function EngineeringPrinciples() {
               className="border-t border-border/40 pt-4"
             >
               <h3 className="text-h4 text-foreground">{principle.title}</h3>
-              <p className="mt-2 text-small text-muted-foreground">
+              <p className="mt-2 text-small text-justify text-muted-foreground">
                 {principle.description}
               </p>
             </li>

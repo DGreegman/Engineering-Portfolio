@@ -25,7 +25,7 @@ export function LearningRoadmap() {
         {LEARNING_ROADMAP_COPY.paragraphs.map((paragraph) => (
           <p
             key={paragraph}
-            className="text-body leading-relaxed text-muted-foreground"
+            className="text-body text-justify leading-relaxed text-muted-foreground"
           >
             {paragraph}
           </p>

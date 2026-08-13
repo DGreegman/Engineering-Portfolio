@@ -29,7 +29,7 @@ export function Tools() {
         {TOOLS_COPY.introduction.map((paragraph) => (
           <p
             key={paragraph}
-            className="text-body leading-relaxed text-muted-foreground"
+            className="text-body text-justify leading-relaxed text-muted-foreground"
           >
             {paragraph}
           </p>
