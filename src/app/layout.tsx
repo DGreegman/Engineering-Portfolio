@@ -5,6 +5,7 @@ import { WorkspaceLayout } from "@/components/layout/workspace-layout";
 import { Header } from "@/components/navigation/header";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { Footer } from "@/components/navigation/footer";
+import { RSS_PATH, SITE_URL } from "@/lib/constants/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,6 +23,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Engineering Portfolio",
   description: "Engineering Portfolio project foundation.",
+  // Feed auto-discovery (Task 6.6, docs/47 WI-5) — the standard mechanism
+  // browsers/feed readers use to find a site's RSS feed, independent of
+  // whether Header's own RSS icon is clickable yet (it isn't — that
+  // activation is a separate, later step, docs/46 §11/§15).
+  alternates: {
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
