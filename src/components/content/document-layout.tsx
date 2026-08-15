@@ -90,10 +90,26 @@
  * for `relatedKnowledge`/`engineeringLogs`: its own hardcoded
  * `aria-label`, its own conditionally-omitted `Section`, no change to any
  * other slot's behavior. A route passes `relatedWork` alone (Engineering
- * Log), `relatedKnowledge`/`engineeringLogs` alone (Work), or
- * `relatedLearning` alone (Knowledge) — the same "trusts its caller,
- * never expected to mix" posture already stated above, now extended to a
- * third collection.
+ * Log), `relatedKnowledge`/`engineeringLogs`/`relatedCaseStudies` alone
+ * (Work), or `relatedLearning` alone (Knowledge) — the same "trusts its
+ * caller, never expected to mix" posture already stated above, now
+ * extended to a third collection.
+ *
+ * `relatedCaseStudies` (Task 7.3, docs/55-RELATED_CONTENT_DISCOVERY.md,
+ * docs/56-RELATED_CONTENT_IMPLEMENTATION_PLAN.md §5): the Case Study's own
+ * *third* closing relationship region — "what else demonstrates a similar
+ * engineering concern" (docs/31 §7), resolved by
+ * `resolveRelatedCaseStudies()` (`lib/content/case-study-relationships.ts`)
+ * via same-`domain` adjacency. A new slot rather than reusing
+ * `relatedKnowledge` or `engineeringLogs` for the identical reason
+ * `relatedWork` already wasn't folded into either: this is a genuinely
+ * different relationship (Work→Work, not Work→Knowledge or Work→Engineering
+ * Log) and deserves its own separately-landmarked, separately-announced
+ * region. Positioned immediately after `engineeringLogs` and before
+ * `relatedWork` — Work's three relationship regions stay contiguous, ahead
+ * of Engineering Log's own slot for a different collection's page entirely.
+ * Follows the same conditionally-omitted-`Section`, hardcoded-`aria-label`
+ * pattern every other slot in this group already uses.
  *
  * Every `?? <PlaceholderRegion />` fallback below is now a defensive-only
  * path, not a "still coming" signal — every real article resolves a topic
@@ -165,6 +181,8 @@ export interface DocumentLayoutProps {
   relatedKnowledge?: React.ReactNode;
   /** Case Study only (Task 5.3) — see this file's own docstring. */
   engineeringLogs?: React.ReactNode;
+  /** Case Study only (Task 7.3) — see this file's own docstring. */
+  relatedCaseStudies?: React.ReactNode;
   /** Engineering Log only (Task 6.2) — see this file's own docstring. */
   relatedWork?: React.ReactNode;
   previousNext?: React.ReactNode;
@@ -179,6 +197,7 @@ export function DocumentLayout({
   relatedLearning,
   relatedKnowledge,
   engineeringLogs,
+  relatedCaseStudies,
   relatedWork,
   previousNext,
 }: DocumentLayoutProps) {
@@ -243,6 +262,12 @@ export function DocumentLayout({
       {engineeringLogs && (
         <Section aria-label="Engineering Logs" spacing="md" width="full">
           {engineeringLogs}
+        </Section>
+      )}
+
+      {relatedCaseStudies && (
+        <Section aria-label="Related Case Studies" spacing="md" width="full">
+          {relatedCaseStudies}
         </Section>
       )}
 

@@ -30,23 +30,22 @@
  * `DocumentLayout`, `Breadcrumb`, `TableOfContents`, `ArticleBody` (the MDX
  * pipeline), and `PreviousNext` (fed a Work-shaped but structurally
  * compatible `ResolvedArticleSummary` pair). `ProjectHeader`,
- * `RelatedKnowledge`, and `RelatedEngineeringLogs` are new, Work-scoped
- * components (`components/work/`) — see `docs/31` §3's "What Intentionally
- * Differs" for why these three, specifically, needed their own shape rather
- * than reusing `DocumentHeader`/`RelatedLearning` as-is.
+ * `RelatedKnowledge`, `RelatedEngineeringLogs`, and (Task 7.3)
+ * `RelatedCaseStudies` are Work-scoped components (`components/work/`) —
+ * see `docs/31` §3's "What Intentionally Differs" for why the first three,
+ * specifically, needed their own shape rather than reusing
+ * `DocumentHeader`/`RelatedLearning` as-is.
  *
- * **Related Case Studies is intentionally not implemented here.** `docs/31`
- * §7 designs it as part of the Case Study's full navigation model — "what
- * else demonstrates a similar engineering concern," resolved by theme/
- * domain adjacency — but this task's approved Implementation Scope lists
- * only Breadcrumb, Project Header, Table of Contents + Reading Layout,
- * Case Study Body, Related Knowledge, Engineering Logs, and Previous/Next.
- * This is a deliberate deferral to whichever future task establishes the
- * Work relationship/navigation model in full, not an oversight: building
- * it now would mean resolving theme adjacency without case studies
- * carrying theme metadata of their own (`case-study-relationships.ts`'s
- * own docstring notes the identical gap for Previous/Next's theme tier),
- * which is exactly the kind of scope this task was asked not to consume.
+ * **Related Case Studies is now implemented** (Task 7.3,
+ * `docs/55-RELATED_CONTENT_DISCOVERY.md`,
+ * `docs/56-RELATED_CONTENT_IMPLEMENTATION_PLAN.md`) — "what else
+ * demonstrates a similar engineering concern" (`docs/31` §7), resolved by
+ * same-`domain` adjacency via `resolveRelatedCaseStudies()`
+ * (`lib/content/case-study-relationships.ts`), reusing the `allCaseStudies`
+ * collection already fetched below for Previous/Next rather than a second
+ * read. Theme adjacency remains out of scope, for the identical reason
+ * `case-study-relationships.ts`'s own docstring still states: case studies
+ * carry no theme metadata of their own.
  */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -59,6 +58,7 @@ import { PreviousNext } from "@/components/content/previous-next";
 import { ProjectHeader } from "@/components/work/project-header";
 import { RelatedKnowledge } from "@/components/work/related-knowledge";
 import { RelatedEngineeringLogs } from "@/components/work/related-engineering-logs";
+import { RelatedCaseStudies } from "@/components/work/related-case-studies";
 import { extractHeadings } from "@/lib/content/toc";
 import { getAllArticles } from "@/lib/content/articles";
 import { getAllEngineeringLogEntries } from "@/lib/content/engineering-logs";
@@ -72,6 +72,7 @@ import {
 import {
   resolveRelatedKnowledge,
   resolveRelatedEngineeringLogs,
+  resolveRelatedCaseStudies,
   resolvePreviousNextCaseStudy,
 } from "@/lib/content/case-study-relationships";
 
@@ -118,6 +119,12 @@ export default async function CaseStudyPage({
     caseStudy,
     engineeringLogEntries,
   );
+  // Task 7.3: reuses the same `allCaseStudies` array already fetched above
+  // for Previous/Next — no second getAllCaseStudies() read.
+  const relatedCaseStudies = resolveRelatedCaseStudies(
+    caseStudy,
+    allCaseStudies,
+  );
   const previousNext = resolvePreviousNextCaseStudy(caseStudy, allCaseStudies);
 
   return (
@@ -163,6 +170,13 @@ export default async function CaseStudyPage({
       engineeringLogs={
         relatedEngineeringLogs.length > 0 ? (
           <RelatedEngineeringLogs items={relatedEngineeringLogs} />
+        ) : undefined
+      }
+      relatedCaseStudies={
+        // Same "pass no element at all when empty" discipline as every
+        // other relationship prop on this page (Task 5.7 RC refinement #2).
+        relatedCaseStudies.length > 0 ? (
+          <RelatedCaseStudies items={relatedCaseStudies} />
         ) : undefined
       }
       previousNext={

@@ -23,12 +23,15 @@
  * (docs/41 §11, D3). About never participates either — it's a single
  * static page, not a collection with a `getAll*()` read path (docs/41 D3).
  *
- * Matching is a plain case-insensitive substring test against `title` and
- * `description` only — no `tags`, no `technologies`, no MDX body content,
- * no fuzzy/ranked relevance (docs/41 §8, D2; Milestone 7's own "Filtering"
- * deliverable is explicitly not this). An empty or whitespace-only query
- * matches nothing — never "everything" — so `/search` with no real query
- * can't silently become an unbounded listing page.
+ * Matching is a plain case-insensitive substring test against `title`,
+ * `description`, and — as of Task 7.2 (Tag Discovery,
+ * `docs/54-TAG_DISCOVERY_IMPLEMENTATION_PLAN.md`) — each individual value in
+ * `tags`. Still no `technologies`, no MDX body content, no fuzzy/ranked
+ * relevance (docs/41 §8, D2 for the original two fields; docs/54 §5/§6 for
+ * why `tags` extends the identical algorithm rather than introducing a new
+ * one). An empty or whitespace-only query matches nothing — never
+ * "everything" — so `/search` with no real query can't silently become an
+ * unbounded listing page.
  *
  * Matching and sorting happen at the `ContentItem` level, *before*
  * normalization to `ResolvedArticleSummary` — `sortByPublishedDate()` needs
@@ -72,20 +75,29 @@ export interface SearchResults {
 }
 
 /**
- * Case-insensitive substring match against a document's own `title` and
- * `description` — the entire matching algorithm this task's scope allows
- * (docs/41 §8, D2). Applied identically across all three collections so
- * match behavior can't silently diverge per collection.
+ * Case-insensitive substring match against a document's own `title`,
+ * `description`, and (Task 7.2, docs/54 §5/§6) each individual `tags`
+ * value. Applied identically across all three collections so match
+ * behavior can't silently diverge per collection.
+ *
+ * `tags` is matched per element (`.some()`), never by joining the array
+ * into one string first: joining could let a query span two unrelated
+ * tags' boundary (e.g. `["ab", "cd"]` joined as `"ab cd"` would spuriously
+ * match a query like `"b c"`) — a false positive with no basis in either
+ * tag's actual meaning (docs/54 §6). The two existing `title`/`description`
+ * clauses are unchanged from their original Task 6.4 form.
  */
 function matchesQuery(
   title: string,
   description: string,
+  tags: string[],
   query: string,
 ): boolean {
   const normalizedQuery = query.toLowerCase();
   return (
     title.toLowerCase().includes(normalizedQuery) ||
-    description.toLowerCase().includes(normalizedQuery)
+    description.toLowerCase().includes(normalizedQuery) ||
+    tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))
   );
 }
 
@@ -102,19 +114,34 @@ export function searchContent(query: string): SearchResults {
 
   const knowledge = sortByPublishedDate(
     getAllArticles().filter((item) =>
-      matchesQuery(item.frontmatter.title, item.frontmatter.description, query),
+      matchesQuery(
+        item.frontmatter.title,
+        item.frontmatter.description,
+        item.frontmatter.tags,
+        query,
+      ),
     ),
   ).map(toSummary);
 
   const work = sortByPublishedDate(
     getAllCaseStudies().filter((item) =>
-      matchesQuery(item.frontmatter.title, item.frontmatter.description, query),
+      matchesQuery(
+        item.frontmatter.title,
+        item.frontmatter.description,
+        item.frontmatter.tags,
+        query,
+      ),
     ),
   ).map(toCaseStudySummary);
 
   const engineeringLog = sortByPublishedDate(
     getAllEngineeringLogEntries().filter((item) =>
-      matchesQuery(item.frontmatter.title, item.frontmatter.description, query),
+      matchesQuery(
+        item.frontmatter.title,
+        item.frontmatter.description,
+        item.frontmatter.tags,
+        query,
+      ),
     ),
   ).map(toEngineeringLogArticleSummary);
 

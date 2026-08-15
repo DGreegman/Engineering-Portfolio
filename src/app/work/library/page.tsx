@@ -4,7 +4,7 @@ import { LibraryHeader } from "@/components/work/library-header";
 import { BrowseLenses } from "@/components/work/browse-lenses";
 import { CaseStudyListing } from "@/components/work/case-study-listing";
 import { ContinueExploring } from "@/components/work/continue-exploring";
-import { getCaseStudyLibrary } from "@/lib/content/work";
+import { getCaseStudyLibrary } from "@/lib/content/case-studies";
 import { LIBRARY_CONTINUE_EXPLORING_COPY } from "@/lib/constants/work-library-copy";
 
 export const metadata: Metadata = {
@@ -36,6 +36,14 @@ export const metadata: Metadata = {
  * that function's docstring for what it's expected to grow into.
  */
 export default function CaseStudyLibraryPage() {
+  // Real Content Migration (Task 7.1, docs/52 WI-4): reads
+  // `case-studies.ts`'s own `getCaseStudyLibrary()` — real
+  // `content/work/*.mdx` case studies — never `lib/content/work.ts`'s
+  // placeholder-backed version. `library.themes` is real-shaped but empty
+  // by construction (docs/52 WI-5): no real per-case-study theme facet
+  // exists yet. `BrowseLenses`' Domain and Status lenses remain fully real
+  // and populated regardless — only its one unsupported Theme perspective
+  // goes quiet, with its own existing, honest empty state.
   const library = getCaseStudyLibrary();
 
   return (

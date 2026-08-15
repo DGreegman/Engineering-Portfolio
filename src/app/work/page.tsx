@@ -5,15 +5,14 @@ import { EngineeringPhilosophy } from "@/components/work/engineering-philosophy"
 import { FeaturedCaseStudies } from "@/components/work/featured-case-studies";
 import { ArchitectureHighlights } from "@/components/work/architecture-highlights";
 import { ProjectLibrary } from "@/components/work/project-library";
-import { EngineeringLessons } from "@/components/work/engineering-lessons";
 import { ContinueExploring } from "@/components/work/continue-exploring";
 import {
+  getAllCaseStudies,
   getFeaturedCaseStudies,
-  getProjectLibrary,
-  getEngineeringThemes,
-  getEngineeringLessons,
-  getProjectLibraryHref,
-} from "@/lib/content/work";
+  getCaseStudyDomainGroups,
+  toCaseStudyEntry,
+} from "@/lib/content/case-studies";
+import { getProjectLibraryHref } from "@/lib/content/work";
 import { CONTINUE_EXPLORING_COPY } from "@/lib/constants/work-copy";
 
 export const metadata: Metadata = {
@@ -38,17 +37,26 @@ export const metadata: Metadata = {
  * actually earn `components/work/shared/` — Task 5.2 generalized it
  * specifically so both this page and `app/work/library/page.tsx` could
  * reuse it.
+ *
+ * Real Content Migration (Task 7.1, docs/52 WI-3/WI-5): every Work-facing
+ * section below now reads `lib/content/case-studies.ts`'s
+ * `getAllCaseStudies()` — the real `content/work/*.mdx` collection — never
+ * `lib/content/work.ts`'s `PLACEHOLDER_WORK`-backed resolvers.
+ * `getProjectLibraryHref()` is the one exception, still read from `work.ts`
+ * unchanged: a pure route-string constant with no fixture dependency,
+ * never part of the placeholder problem this migration solves (docs/52
+ * §8). Architecture Highlights is reframed to a real domain grouping
+ * (`getCaseStudyDomainGroups()`); Engineering Lessons no longer renders on
+ * this page — no real field anywhere in the schema corresponds to it, and
+ * fabricating its content is explicitly ruled out (docs/52 WI-5).
  */
 export default function WorkPage() {
-  // `app/work/page.tsx` receives already-resolved data from `lib/content/
-  // work.ts` (Task 5.1 review refinement #1) rather than deriving it itself
-  // — no `PLACEHOLDER_WORK.filter(...)` here. See that file's docstring for
-  // what changes, and what doesn't, once a real Content Engine query
-  // replaces its current placeholder-backed implementation.
-  const featuredCaseStudies = getFeaturedCaseStudies();
-  const projectLibrary = getProjectLibrary();
-  const engineeringThemes = getEngineeringThemes();
-  const engineeringLessons = getEngineeringLessons();
+  const caseStudies = getAllCaseStudies();
+  const featuredCaseStudies = getFeaturedCaseStudies({ caseStudies }).map(
+    toCaseStudyEntry,
+  );
+  const projectLibrary = caseStudies.map(toCaseStudyEntry);
+  const domainGroups = getCaseStudyDomainGroups(caseStudies);
   const projectLibraryHref = getProjectLibraryHref();
 
   return (
@@ -56,9 +64,8 @@ export default function WorkPage() {
       <WorkHero />
       <EngineeringPhilosophy />
       <FeaturedCaseStudies caseStudies={featuredCaseStudies} />
-      <ArchitectureHighlights themes={engineeringThemes} />
+      <ArchitectureHighlights domainGroups={domainGroups} />
       <ProjectLibrary caseStudies={projectLibrary} />
-      <EngineeringLessons lessons={engineeringLessons} />
       <ContinueExploring
         title={CONTINUE_EXPLORING_COPY.title}
         introduction={CONTINUE_EXPLORING_COPY.introduction}

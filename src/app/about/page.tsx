@@ -30,7 +30,7 @@ import { Contact } from "@/components/about/contact";
 export const metadata: Metadata = {
   title: "About — Engineering Portfolio",
   description:
-    "Backend Engineer and Technical Lead — engineering principles, current interests, tools, and how to get in touch.",
+    "Software Engineer and Technical Lead — engineering principles, current interests, tools, and how to get in touch.",
 };
 
 export default function AboutPage() {

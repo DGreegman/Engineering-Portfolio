@@ -47,13 +47,13 @@ import type { ContentItem } from "@/types/content";
  * that schema's own docstring for why. Documented as a known limitation in
  * this task's implementation report, not a silent simplification.
  *
- * This file also does not implement Related Case Studies (docs/31 §7's
- * other navigation path, "what else demonstrates a similar engineering
- * concern") — `app/work/[slug]/page.tsx`'s own docstring states the
- * deferral explicitly. It would resolve through this same file, using the
- * same domain (and eventually theme) adjacency this module already
- * computes for Previous/Next, whenever the task that owns the Work
- * relationship/navigation model in full picks it up.
+ * **Related Case Studies (Task 7.3, `docs/56-RELATED_CONTENT_IMPLEMENTATION_
+ * PLAN.md`) is now implemented — see `resolveRelatedCaseStudies()` below.**
+ * It resolves through this same file, using the same domain adjacency
+ * `findDomainNeighbor()` already computes for Previous/Next, exactly as
+ * anticipated here before this task began. Theme adjacency remains out of
+ * scope, for the identical reason stated above: case studies still carry
+ * no theme metadata of their own.
  */
 
 type WorkItem = ContentItem<WorkFrontmatter>;
@@ -178,6 +178,50 @@ export function resolveRelatedEngineeringLogs(
   }
 
   return resolved;
+}
+
+/**
+ * Related Case Studies (Task 7.3, docs/55-RELATED_CONTENT_DISCOVERY.md §6,
+ * docs/56 §3) — "what else demonstrates a similar engineering concern"
+ * (docs/31 §7), resolved by same-`domain` adjacency: the one authored field
+ * every real case study already carries, reused rather than requiring a new
+ * one (docs/55 §6's own Architecture Decision D1 — deriving from `domain`
+ * is authored-adjacency, not inferred similarity, the same category of
+ * signal `resolveSameTopicFallback()` (`relationships.ts`) already uses for
+ * Knowledge's own fallback tier).
+ *
+ * **Deliberately not `findDomainNeighbor()`, below** — that function finds
+ * one *immediate positional* neighbor per direction, for Previous/Next; this
+ * one returns *every* domain sibling (capped), the same "all matching
+ * siblings, not one neighbor" shape `resolveSameTopicFallback()` already
+ * established for a structurally identical problem in a different
+ * collection. The two are not interchangeable and neither is modified by
+ * the other's addition.
+ *
+ * Sorted alphabetically by title — a neutral, deterministic order, not a
+ * relevance ranking claim, the same reasoning `resolveSameTopicFallback()`'s
+ * own docstring already gives for its identical choice. `limit` defaults to
+ * `DEFAULT_RELATIONSHIP_LIMIT`, the same shared editorial ceiling every
+ * other Work-side relationship group in this file already uses — this is a
+ * primary Work relationship region, not a fallback tier, so it uses the
+ * shared default rather than Knowledge's smaller fallback-specific cap.
+ * Reuses `toCaseStudySummary()` unmodified — no new mapping logic, no new
+ * result type.
+ */
+export function resolveRelatedCaseStudies(
+  caseStudy: WorkItem,
+  allCaseStudies: WorkItem[] = getAllCaseStudies(),
+  limit = DEFAULT_RELATIONSHIP_LIMIT,
+): ResolvedArticleSummary[] {
+  return allCaseStudies
+    .filter(
+      (item) =>
+        item.slug !== caseStudy.slug &&
+        item.frontmatter.domain === caseStudy.frontmatter.domain,
+    )
+    .sort((a, b) => a.frontmatter.title.localeCompare(b.frontmatter.title))
+    .slice(0, limit)
+    .map(toCaseStudySummary);
 }
 
 type NeighborDirection = "previous" | "next";

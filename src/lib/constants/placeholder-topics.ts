@@ -69,6 +69,23 @@ export interface Topic {
   relatedTopics?: TopicSlug[];
 }
 
+/**
+ * Looks up a topic's display metadata by slug. Exported (Real Content
+ * Migration, Task 7.1, docs/52 §14): both `/knowledge` and
+ * `/knowledge/[slug]` now need this lookup to resolve a real article's
+ * topic display label when mapping it into a `KnowledgeArticleCard` — two
+ * independent real consumers, the bar this codebase already applies before
+ * exporting a helper (this file's own docstring on `TOPIC_SLUGS`).
+ * Deliberately lives here, not in `lib/content/articles.ts` or a route
+ * file: this is a `lib/constants` → `lib/constants` lookup over data this
+ * file already owns, and `lib/content/` must never import from `src/app/`
+ * — a route-file-private helper couldn't serve two separate route files
+ * without that inversion.
+ */
+export function findTopic(slug: string): Topic | undefined {
+  return PLACEHOLDER_TOPICS.find((topic) => topic.slug === slug);
+}
+
 export const PLACEHOLDER_TOPICS: Topic[] = [
   {
     title: "Backend",

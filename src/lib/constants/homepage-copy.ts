@@ -259,7 +259,7 @@ export const BEYOND_THE_CODE_COPY = {
   title: "Beyond the Code",
   introduction: [
     "Every system tells a story, but so does the person who builds it.",
-    "I'm a backend engineer who enjoys understanding how systems work, why architectural decisions matter, and how thoughtful engineering can solve real problems.",
+    "I'm a software engineer who enjoys understanding how systems work, why architectural decisions matter, and how thoughtful engineering can solve real problems.",
     "Writing, documenting, and teaching are extensions of that curiosity. Sharing what I learn helps me refine my own thinking while hopefully making someone else's path a little clearer.",
     "This workspace is a reflection of that journey. It's where ideas become notes, notes become systems, and systems become lessons worth sharing.",
   ],

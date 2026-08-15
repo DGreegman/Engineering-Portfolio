@@ -1,0 +1,16 @@
+---
+title: "Removing Haya's Invitation Gate"
+description: "Haya's invitation-only beta gate solved sign-up control, not usage control — removed entirely once the product needed metered access control instead, replaced by tiered subscriptions and device-fingerprint abuse detection."
+publishedAt: "2025-10-08"
+tags: ["platform", "access-control"]
+---
+
+Haya launched as a closed, invitation-only beta. Signing up meant having a valid invitation code — checked before the auth handler even ran — and once someone was in, further usage beyond a free quota was gated by a Solana/USDC micropayment charged per analysis.
+
+That gate did its job while the product was still unvalidated: it let usage grow without either an unbounded cost exposure or premature payment infrastructure — a reasonable way to validate the product first. But an invitation code answers a narrower question than it looks like it does. It controls who can sign up. It says nothing about how much a signed-up account can actually consume once they're in — an invited user could still generate unlimited free-tier load. As Haya matured past the closed-beta phase, that mismatch became the real constraint, and the gate stopped being the right tool for the problem the product actually had.
+
+The fix wasn't to patch the invitation system — it was removed entirely, not paused. Every route and UI surface that referenced it was pulled: the register and login forms, the OAuth redirect's carried state, the beta-gate redirect on failure. Nothing was left dormant behind a flag; a half-migrated gate is worse than either keeping it fully or removing it fully. In its place: a tiered subscription model — Free, Starter, Growth, Scale — with the free tier protected by usage quotas and device-fingerprint-based abuse detection instead of a signup wall. The existing per-analysis Solana micropayment didn't disappear; it got folded into the same subscription checkout flow rather than staying a separate mechanism.
+
+The new checkout flow was verified end-to-end against a live server — a real wallet signing and sending a real on-chain USDC transaction, on a test network. That exercise surfaced its own problem: the payment-verification code's single-attempt RPC check wasn't resilient enough under real-world conditions. It was hardened afterward — retry/backoff on the RPC calls, a `PENDING` intermediate state, and the activation step wrapped in a database transaction.
+
+The lesson that stuck: an access-control mechanism isn't a permanent architectural commitment. It's a decision scoped to whatever problem the product actually has right now. The invitation gate was the right call for an unvalidated beta and the wrong one once Haya needed real, metered access control instead — and reversing it cleanly, in full, was the correct response to the problem changing underneath it.

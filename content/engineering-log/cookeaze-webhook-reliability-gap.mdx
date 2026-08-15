@@ -1,0 +1,20 @@
+---
+title: "The Webhook That Wasn't Enough"
+description: "A payment webhook was trusted as the only signal a transaction had completed — until real payments went unrecorded because it silently never arrived, and a self-chaining poller was built to close the gap."
+publishedAt: "2024-12-03"
+tags: ["payments", "webhooks", "reliability"]
+---
+
+Once real money started moving through Cookeaze's wallet — users funding it, creators withdrawing from it — "the payment succeeded" needed to be a fact the backend could independently confirm, not an assumption. The original design rested that fact on a single signal: the payment provider's webhook. Paystack would call back once a transaction resolved, and the platform trusted that call as the whole story.
+
+A webhook is not a guarantee. It can be delayed, dropped, or delivered more than once, and the failure mode that actually mattered here was the quiet one: occasional payments that completed on Paystack's side without ever being reflected in the platform, because the webhook that was supposed to report it simply never arrived.
+
+Once that gap was understood, the question became what to pair the webhook with. A user-initiated "check my payment status" button was one candidate — and it was rejected, because it depends on the user staying on the page and manually triggering the check, which is exactly the failure mode (a webhook silently never arriving) it would need to cover. A fallback that only works if someone notices it's needed isn't really a fallback.
+
+The fix that actually closed the gap moved the same responsibility onto the system itself: a Celery polling task that checks the provider's own transaction-status API on a schedule, self-chaining and backing off — re-queuing itself until the transaction resolves — independent of the client, and independent of whether the webhook ever shows up at all.
+
+Making that safe took one more piece: a `TransactionMapping` record created up front, keyed on a unique transaction reference, so the webhook and the poller could race each other without risk. Whichever path resolves the transaction first updates the wallet; the other, arriving after, finds it already resolved on the same reference and is a safe no-op rather than a second credit.
+
+The self-chaining poll and the idempotent resolution logic are both live in production, directly closing the specific gap — webhook-only trust — that the earlier design had. No transaction-volume or reliability figures are published here; the concrete evidence is that the failure mode motivating this design was identified from real production behavior and addressed, not hypothesized in advance.
+
+The lesson worth keeping: a third-party webhook is a hint that something happened, not a guarantee. Any system crediting real money on a webhook alone needs an independent way to confirm the same fact — and that confirmation has to come from the system itself, never from asking a user to notice and retry.

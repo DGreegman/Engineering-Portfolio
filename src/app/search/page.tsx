@@ -38,7 +38,7 @@ import { hasSearchResults, searchContent } from "@/lib/content/search";
 export const metadata: Metadata = {
   title: "Search — Engineering Portfolio",
   description:
-    "Search Knowledge, Work, and Engineering Log by title and description.",
+    "Search Knowledge, Work, and Engineering Log by title, description, or tag.",
   // A search-results URL shouldn't be indexed — docs/41 §18's explicit
   // requirement. No canonical URL, no Open Graph, no structured data —
   // the same bounded metadata scope docs/35/docs/37/docs/40 already drew.
@@ -83,7 +83,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               type="search"
               name="q"
               defaultValue={query}
-              placeholder="Search by title or description…"
+              placeholder="Search by title, description, or tag…"
               className="max-w-sm"
             />
             <Button type="submit" variant="outline">
@@ -94,8 +94,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
         {!query ? (
           <p className="text-body text-muted-foreground">
-            Enter a term to search Knowledge, Work, and Engineering Log by title
-            and description.
+            Enter a term to search Knowledge, Work, and Engineering Log by
+            title, description, or tag.
           </p>
         ) : results && hasSearchResults(results) ? (
           <SearchResults results={results} />

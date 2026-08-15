@@ -57,12 +57,8 @@ import {
   resolvePreviousNext,
   hasRelatedLearningContent,
 } from "@/lib/content/relationships";
-import {
-  PLACEHOLDER_TOPICS,
-  type Topic,
-} from "@/lib/constants/placeholder-topics";
+import { findTopic, type Topic } from "@/lib/constants/placeholder-topics";
 import { PLACEHOLDER_SERIES } from "@/lib/constants/placeholder-series";
-import { PLACEHOLDER_TOPIC_ARTICLES } from "@/lib/constants/placeholder-topic-articles";
 import {
   TOPIC_START_HERE_COPY,
   TOPIC_LEARNING_SERIES_COPY,
@@ -75,16 +71,38 @@ import {
   getArticleBySlug,
   getArticleMetadata,
   getArticleSlugs,
+  getFeaturedArticles,
+  toKnowledgeArticleCard,
 } from "@/lib/content/articles";
+import { sortByPublishedDate } from "@/lib/content/loader";
+import { TOPIC_SLUGS, type TopicSlug } from "@/lib/content/topics";
 
-function findTopic(slug: string): Topic | undefined {
-  return PLACEHOLDER_TOPICS.find((topic) => topic.slug === slug);
+/**
+ * Topic-slug validity, re-sourced to the real, authoritative vocabulary
+ * (Real Content Migration, Task 7.1, docs/52 §6) — the same `TOPIC_SLUGS`
+ * `knowledgeFrontmatterSchema` already validates real article frontmatter
+ * against, rather than `PLACEHOLDER_TOPICS` array membership, which
+ * happened to match but checked the wrong source.
+ */
+function isTopicSlug(slug: string): slug is TopicSlug {
+  return (TOPIC_SLUGS as readonly string[]).includes(slug);
+}
+
+/**
+ * Combines the real validity check above with the retained display-metadata
+ * lookup (`findTopic()`, `lib/constants/placeholder-topics.ts`, docs/52
+ * §9/§14) — a topic slug that's real but has no display entry yet is now an
+ * honest, distinct gap from "not a topic at all," rather than the two being
+ * silently conflated by a single `PLACEHOLDER_TOPICS.find()` call the way
+ * this route did before this migration.
+ */
+function resolveTopic(slug: string): Topic | undefined {
+  if (!isTopicSlug(slug)) return undefined;
+  return findTopic(slug);
 }
 
 export function generateStaticParams() {
-  const topicParams = PLACEHOLDER_TOPICS.map((topic) => ({
-    slug: topic.slug,
-  }));
+  const topicParams = TOPIC_SLUGS.map((slug) => ({ slug }));
   const articleParams = getArticleSlugs().map((slug) => ({ slug }));
   return [...topicParams, ...articleParams];
 }
@@ -94,7 +112,7 @@ export async function generateMetadata({
 }: PageProps<"/knowledge/[slug]">): Promise<Metadata> {
   const { slug } = await params;
 
-  const topic = findTopic(slug);
+  const topic = resolveTopic(slug);
   if (topic) {
     return {
       title: `${topic.title} — Knowledge — Engineering Portfolio`,
@@ -118,24 +136,34 @@ export default async function KnowledgeSlugPage({
 }: PageProps<"/knowledge/[slug]">) {
   const { slug } = await params;
 
-  // Step 1 — Topic resolution. Task 4.2's experience, unchanged.
-  const topic = findTopic(slug);
+  // Step 1 — Topic resolution. Task 4.2's experience; Start Here/Article
+  // List re-sourced to real content by the Real Content Migration (Task
+  // 7.1, docs/52 WI-2) — never `PLACEHOLDER_TOPIC_ARTICLES`.
+  const topic = resolveTopic(slug);
   if (topic) {
-    // `hasContent` gates the hero's article count, not just which arrays
-    // get passed down: showing an aspirational "14 Articles" next to a
-    // Start Here/Articles section that both say "still being curated"
-    // reads as a bug, not a preview of scale — verified by actually
-    // looking at the rendered Cloud page, not just reasoning about it. The
-    // three topics with real placeholder-topic-articles.ts content keep
-    // their larger aspirational count (the library growing beyond what's
-    // curated here is normal when there's real content demonstrating the
-    // topic is active); topics with nothing rendered anywhere on the page
-    // don't claim a count.
-    const hasContent = slug in PLACEHOLDER_TOPIC_ARTICLES;
-    const { startHere, articles } = PLACEHOLDER_TOPIC_ARTICLES[slug] ?? {
-      startHere: [],
-      articles: [],
-    };
+    // Every published article whose frontmatter.topic matches this slug —
+    // draft-filtered by `getAllArticles()` itself.
+    const topicArticles = getAllArticles().filter(
+      (article) => article.frontmatter.topic === slug,
+    );
+    const startHereArticles = getFeaturedArticles({
+      articles: topicArticles,
+      limit: 3,
+    });
+    const startHereSlugs = new Set(startHereArticles.map((a) => a.slug));
+    // "The remaining shelf, beyond the three Start Here picks above it"
+    // (`TopicArticleList`'s own docstring) — never the full topic list a
+    // second time.
+    const remainingArticles = sortByPublishedDate(
+      topicArticles.filter((article) => !startHereSlugs.has(article.slug)),
+    );
+
+    const startHere = startHereArticles.map((article) =>
+      toKnowledgeArticleCard(article, topic.title),
+    );
+    const articles = remainingArticles.map((article) =>
+      toKnowledgeArticleCard(article, topic.title),
+    );
 
     const series = PLACEHOLDER_SERIES.filter((entry) =>
       entry.topics?.includes(topic.title),
@@ -151,7 +179,7 @@ export default async function KnowledgeSlugPage({
           title={topic.title}
           description={topic.description}
           heroIntroduction={topic.heroIntroduction}
-          articleCount={hasContent ? topic.articleCount : undefined}
+          articleCount={topicArticles.length}
           seriesCount={series.length > 0 ? series.length : undefined}
         />
         <StartHere

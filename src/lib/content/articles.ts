@@ -20,8 +20,10 @@ import {
   filterDrafts,
   sortByPublishedDate,
 } from "@/lib/content/loader";
+import { formatDate } from "@/lib/utils/format-date";
 import type { KnowledgeFrontmatter } from "@/lib/content/schema";
 import type { ContentItem } from "@/types/content";
+import type { KnowledgeArticleCard } from "@/lib/constants/placeholder-knowledge-landing";
 
 /** Every Knowledge article slug on disk (drafts included) — the set Step 2 of the routing resolution order checks a candidate slug against. */
 export function getArticleSlugs(): string[] {
@@ -137,6 +139,35 @@ export function getFeaturedArticles({
   ).slice(0, limit - featured.length);
 
   return [...featured, ...fallback];
+}
+
+/**
+ * Maps a real Knowledge article to the `KnowledgeArticleCard` shape
+ * `StartHere`/`RecentlyPublished`/`TopicArticleList` already render (Real
+ * Content Migration, Task 7.1, docs/52 §5/§11/§14) — not a duplicate of
+ * `toSummary()` (`relationships.ts`): that shape carries `slug`/`collection`
+ * and omits `topic`; this one is the reverse, a genuinely different
+ * presentation contract that predates the resolver layer.
+ *
+ * `topicLabel` is a plain parameter, never resolved inside this function.
+ * The one real topic-label lookup this codebase has (`findTopic()`,
+ * `lib/constants/placeholder-topics.ts`) is layered correctly only when the
+ * *caller* — a route file — performs it and hands the result in:
+ * `lib/content/` must never import from `src/app/`.
+ */
+export function toKnowledgeArticleCard(
+  item: ContentItem<KnowledgeFrontmatter>,
+  topicLabel: string,
+): KnowledgeArticleCard {
+  return {
+    title: item.frontmatter.title,
+    description: item.frontmatter.description,
+    topic: topicLabel,
+    difficulty: item.frontmatter.difficulty,
+    readingTime: item.readingTime.text,
+    publishedAt: formatDate(item.frontmatter.publishedAt),
+    href: `/knowledge/${item.slug}`,
+  };
 }
 
 export function getArticleMetadata(
