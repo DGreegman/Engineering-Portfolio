@@ -1,0 +1,94 @@
+---
+title: "The Ledger Pattern: Why a Balance Should Never Be a Field You Update"
+description: "A stored balance can silently drift from reality — a crashed request, a bad migration, a bug nobody noticed. Deriving it from an append-only history instead makes drift structurally impossible, not just unlikely."
+topic: "architecture"
+publishedAt: "2026-08-16"
+tags: ["ledger", "data-modeling", "correctness", "payments"]
+difficulty: "advanced"
+relatedContent: ["money-floating-point", "idempotency"]
+---
+
+## Introduction
+
+Somewhere in most backends there's a number that's supposed to always be right: an account balance, an inventory count, a subscription's remaining credits. The easy way to keep that number is a column you update — `UPDATE accounts SET balance = balance - 100`. The easy way is also the way it quietly stops being right, and by the time anyone notices, there's no way to reconstruct how it got wrong.
+
+## The Problem
+
+A directly-mutated field has no memory of how it got to its current value — only the value itself. A crashed request, a retried request, a bad migration, or a bug that runs twice all leave the same kind of evidence behind: none. The field just says what it says. There's nothing to check it against, because the thing it should match — the actual sequence of events that produced it — was never recorded anywhere durable. The number can be wrong for a long time before anything downstream notices, and when something finally does, there's no history to audit to find out where.
+
+## The Core Concept
+
+A value can be **stored** — written directly, read directly, trusted at face value — or it can be **derived**: computed from a record of every event that changed it, recomputed (or reconciled against) that record whenever it matters. A stored value is only as correct as every write that ever touched it. A derived value is correct as long as the history it's computed from is correct, which is a much narrower, more checkable thing to guarantee.
+
+This is the same distinction as the difference between trusting a cache and trusting the thing the cache was built from. A derived balance isn't a cleverer way to store a number — it's a decision to make the _wrong_ state structurally unrepresentable, rather than merely unlikely. Correctness that depends on every future change getting a mutation right is correctness that erodes the moment someone unfamiliar with the invariants touches the code. A guarantee that comes from the shape of the data itself doesn't have that dependency.
+
+## Visual Model
+
+```
+STORED (mutable field)              DERIVED (append-only history)
+
+balance: 4900                       ledger:
+  ↑                                   +5000  (deposit)
+  UPDATE balance = balance - 100      -100   (withdrawal)
+  (no record of *why*)                ────
+                                       4900  (computed, not stored)
+```
+
+On the left, `4900` is a fact you have to trust — nothing else in the system can confirm or deny it. On the right, `4900` is an answer you can recompute at any time from a record that was never overwritten — and if the computed answer and a cached copy of it ever disagree, the history is the one that's right by definition.
+
+## Implementation
+
+The general shape: every event that should change the value is appended as its own record, never edited or deleted after the fact. The current value is a **projection** — computed by folding over the history (a sum, a running total, a final state) — either on read, or maintained as a cache that's rebuilt from, and always reconcilable against, the same history.
+
+```sql
+-- Illustrative only, not a documented schema from any specific project.
+INSERT INTO ledger_entries (account_id, amount, reason) VALUES (42, -100, 'withdrawal');
+
+-- The current balance is a computed fact, not a column that was written to:
+SELECT SUM(amount) FROM ledger_entries WHERE account_id = 42;
+```
+
+Corrections follow the same discipline: a mistake isn't fixed by editing the entry that caused it — it's fixed by appending a new, compensating entry that cancels it out. The ledger only ever grows. Every entry that ever existed is still there, which is exactly what makes the history worth trusting in the first place — a record that can be quietly rewritten isn't really a record.
+
+## Trade-offs
+
+**Advantages**
+
+- The current value is provably correct from an auditable history, not merely assumed correct because nothing has gone wrong yet.
+- A value that's wrong has a trail — the exact sequence of entries that produced it is still there to inspect.
+
+**Disadvantages**
+
+- Every read of the current value now requires either computing a projection from the full history or maintaining a cache of one — a single row read is no longer enough by itself.
+- The pattern only pays for itself where a wrong value has a real cost; it's real, ongoing overhead for values where it doesn't.
+
+**Alternatives**
+
+- A single mutable field, updated in place — simpler, and correct exactly as long as every write path that touches it is written correctly, forever, by everyone who ever changes that code.
+
+**When not to use it**
+
+Not every value needs this. A UI preference, a display counter, anything where "probably right" is an acceptable cost of being wrong doesn't need an audit trail behind it. The pattern earns its overhead specifically where the value has to be _provably_ correct, not just usually correct — money, inventory that gates a real transaction, anything a downstream decision depends on being right.
+
+## Common Mistakes
+
+**Treating a correction as an edit.** Fixing a wrong entry by changing it, rather than appending a new entry that cancels it out, quietly breaks the one property that made the history trustworthy — that nothing in it was ever rewritten after the fact.
+
+**Assuming careful application code is a substitute for a structural guarantee.** Code that's careful today has to stay careful forever, across every future change, by every future person who touches it. A guarantee that comes from what the data model allows you to write doesn't depend on anyone remembering to be careful.
+
+## Real-world Examples
+
+VaultPay, a wallet ledger system documented elsewhere in this portfolio, is built around exactly this rule: a wallet's balance is never a column that gets updated — it's a number computed from an append-only ledger of paired entries. Reversals in that system are recorded as new, compensating entries rather than edits or deletions, and the balance itself is a projection computed from that history, never a field any code path is allowed to write to directly.
+
+The same shape predates software by centuries: double-entry bookkeeping has always treated the ledger — not any single account balance — as the record of truth, precisely because a ledger that's never rewritten is the only thing an audit can actually trust.
+
+## Key Takeaways
+
+- A stored value is only as correct as every write that ever touched it; a derived value is correct as long as the history it's computed from is correct — a narrower, more checkable guarantee.
+- Making the wrong state structurally unrepresentable is a stronger guarantee than any amount of application-level care, and it's worth the cost of computing values instead of storing them.
+- Corrections are new, compensating entries — never edits to what already happened.
+- This pattern earns its overhead where a value must be provably correct; it's unnecessary weight everywhere else.
+
+## Related Learning
+
+This article is about where a value's source of truth lives, not how precisely it's represented — for the separate question of why monetary amounts shouldn't be stored as floating-point numbers in the first place, see [Why Money Should Never Use Floating Point](/knowledge/money-floating-point). An append-only history also doesn't, by itself, stop the same event from being recorded twice — for that separate guarantee, see [Idempotency](/knowledge/idempotency). Browse more of the [Architecture topic](/knowledge/architecture) for related reading on system boundaries and data modeling.

@@ -1,0 +1,127 @@
+---
+title: "Idempotency: Making 'Do This Twice, Safely' a Real Guarantee"
+description: "A retried request or a redelivered webhook isn't a rare failure in a real system — it's a certainty. Idempotency is what makes handling the same operation twice as safe as handling it once."
+topic: "distributed-systems"
+publishedAt: "2026-08-16"
+tags: ["idempotency", "correctness", "concurrency", "payments"]
+difficulty: "intermediate"
+relatedContent: ["optimistic-vs-pessimistic-locking"]
+---
+
+## Introduction
+
+A client times out waiting for a response and retries the request. A webhook provider, unsure whether its first delivery attempt succeeded, sends it again. A background job crashes after doing its work but before marking itself done, and gets picked up a second time. None of these are edge cases — in any system with a network in the middle, a request arriving more than once is a certainty, not a possibility to plan around "just in case."
+
+The question isn't whether a request will ever be duplicated. It's what happens when it is.
+
+## The Problem
+
+Some operations are safe to repeat by nature. Others aren't. Setting a flag to `true` a second time changes nothing. Crediting a wallet a second time is a different transaction entirely — to the database, it looks identical to two separate, legitimate credits. The system has no way to know "this is the same request arriving again" unless something makes that fact checkable.
+
+"This should only ever be called once" is not a guarantee — it's an assumption about how callers will behave, and callers include retrying clients, redelivering webhooks, and crashed workers resuming their own work, none of which read that assumption before acting on it.
+
+## The Core Concept
+
+An operation is **idempotent** if applying it more than once produces the same result as applying it once. That's the whole definition — everything else is about how to actually achieve it.
+
+The hard part isn't the definition. It's that idempotency requires recognizing a second attempt _as_ a second attempt — the same logical operation arriving again — rather than treating it as a brand-new one. That recognition needs something to check against: a stable identifier both the first and second attempt can agree refers to the same underlying event. Without one, there's nothing to compare the second call to, and it gets processed as if it were the first.
+
+## Visual Model
+
+Two attempts to resolve the same operation, arriving close together:
+
+```
+Attempt A                          Attempt B
+    │                                   │
+    ├─ check identifier: unresolved     │
+    ├─ apply the operation              │
+    ├─ mark identifier: resolved        │
+    │                                   ├─ check identifier: already resolved
+    │                                   ├─ skip — safe no-op
+```
+
+Whichever attempt gets there first does the work and marks the identifier resolved. The other, arriving after, checks the same identifier, finds it already resolved, and does nothing further — not because it was blocked from trying, but because the check-and-apply step made a second application structurally impossible.
+
+Contrast that with two generic operations, purely to illustrate where the property comes from rather than has to be built:
+
+```
+Naturally idempotent:      SET balance = 500        (applying it twice: still 500)
+Not naturally idempotent:  balance = balance - 100   (applying it twice: -200, not -100)
+```
+
+Most operations that matter — crediting an account, sending a payout, activating a subscription — look like the second case. They need the mechanism above, not luck.
+
+## Implementation
+
+Two real, distinct ways to build that check-and-apply step, taken from real production systems that both needed it for the same underlying reason — money moving through the system, where applying an operation twice is a real, not theoretical, cost of getting this wrong.
+
+### A Dedicated Idempotency-Key Table
+
+One approach: before doing the work, check a table keyed on an identifier the caller provides (or the system derives) for this specific operation. If it's not there, do the work and record the key in the same transaction. If it is, skip.
+
+VaultPay, a wallet ledger system, uses exactly this shape — an `idempotency_keys` table alongside its ledger tables, checked as part of the same database transaction that writes the ledger entry it's guarding. The system explicitly chose PostgreSQL over a Redis-based cache for storing these keys, for a specific, stated reason: a cached key can be evicted, and an idempotency key that silently disappears would let a retried transfer through a second time — exactly the failure this mechanism exists to prevent. The check has to be as durable as the operation it's guarding, or it isn't really a guarantee.
+
+```sql
+BEGIN;
+  -- Fails if this idempotency key was already used — the unique
+  -- constraint is what makes this atomic with the write below.
+  INSERT INTO idempotency_keys (key, operation) VALUES ($1, 'transfer');
+
+  -- Only reached if the insert above succeeded.
+  UPDATE ledger_entries SET ... ;
+COMMIT;
+```
+
+### A Unique Constraint on an Existing Identifier
+
+A second, related approach doesn't need a dedicated key table at all — it reuses an identifier the operation already has, and enforces uniqueness on it directly.
+
+Cookeaze, a payment platform, faced a variant of the same problem from a different angle: a payment could be confirmed by two independent paths at nearly the same moment — a webhook from the payment provider, and a separate polling process checking transaction status directly, run as a fallback in case the webhook never arrived. Either path might resolve the transaction first. The system enforces resolution exactly once with a unique constraint on the transaction's own reference, combined with only crediting a wallet on the transition from an unresolved to a resolved state. Whichever path gets there first wins; the other, arriving after, finds the transaction already resolved on that same reference and is a safe no-op, not a second credit.
+
+Both approaches solve the same problem — making a second application of the same operation harmless — using whatever identifier the domain already has: a client-supplied key in one case, an existing transaction reference in the other.
+
+## Trade-offs
+
+**Advantages**
+
+- A real, enforceable guarantee against duplicate application, holding even when two independent processes race to resolve the same operation.
+- No reliance on the caller behaving correctly — the guarantee is structural, not a matter of application-level discipline.
+
+**Disadvantages**
+
+- Extra storage, and an extra check on every write path this mechanism guards.
+- Every code path that can perform the operation has to go through the same check — a lock or a cache that only one of several possible callers remembers to use isn't a guarantee, it's a gap waiting for the caller that forgot.
+
+**Alternatives, and why each was rejected in the systems above**
+
+- **Caching the key instead of persisting it durably** — rejected by VaultPay specifically because a cache entry can be evicted, silently reopening the exact window the mechanism exists to close.
+- **Locking around the whole operation instead of a uniqueness check** — rejected by Cookeaze, because a lock only works if every independent code path that could perform the operation remembers to acquire it; a unique constraint enforces the guarantee at the data layer regardless of whether a given caller remembered anything.
+
+**When not to use it**
+
+An operation that's naturally idempotent by construction — setting a value rather than incrementing it, for instance — doesn't need a dedicated check; the guarantee already comes for free from the operation's own shape. The machinery above is for operations that aren't naturally idempotent and where a duplicate application has a real cost.
+
+## Common Mistakes
+
+**Assuming "only one thing should ever call this" is enough.** It has to be enforced at the data layer — a constraint every code path respects — not assumed from how the system is expected to be called. A caller that violates the assumption doesn't know it's supposed to be the only one calling.
+
+**Treating "the request has a retry mechanism" as the same claim as "the request is idempotent."** They're related but distinct: a system can retry aggressively and still double-apply an operation if nothing makes the retry recognizable as a repeat. Retrying safely requires idempotency; having a retry mechanism doesn't automatically provide it.
+
+**Storing the idempotency check somewhere less durable than the operation it guards.** If the check can disappear (an evicted cache entry, a table that isn't part of the same transaction as the write), the operation it's supposed to protect can still be duplicated — the two have to be at least as durable as each other.
+
+## Real-world Examples
+
+VaultPay's idempotency-key table and Cookeaze's unique-reference constraint are two different implementations of the same underlying guarantee, arrived at independently, for the same reason: both move real money, and both needed a real answer to "what happens if this exact operation is attempted twice" that didn't depend on it never happening.
+
+Beyond these two, the same problem shows up anywhere a client can retry a request or a provider can redeliver a notification — payment APIs commonly require or generate an idempotency key for exactly this reason, so a retried "create charge" request doesn't create two charges.
+
+## Key Takeaways
+
+- Idempotent means applying an operation more than once has the same effect as applying it once — not that it can't be called twice, but that a second call is harmless.
+- The hard part is recognizing a repeat attempt as a repeat, which requires a stable identifier to check against.
+- The guarantee has to be enforced at the data layer, atomically with the operation it protects — not assumed from caller discipline, and not stored somewhere less durable than the write it guards.
+- A retry mechanism and an idempotency guarantee are different things; a system needs both, not one standing in for the other.
+
+## Related Learning
+
+Idempotency and concurrency control solve adjacent but different problems — locking prevents two writers from conflicting over the same row at the same time, while idempotency prevents the same logical operation from being applied more than once. See [Optimistic vs Pessimistic Locking](/knowledge/optimistic-vs-pessimistic-locking) for the concurrency side of this. Browse more of the [Distributed Systems topic](/knowledge/distributed-systems) for related reading on consistency and concurrency control.

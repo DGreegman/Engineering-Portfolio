@@ -3,6 +3,7 @@ title: "The Webhook That Wasn't Enough"
 description: "A payment webhook was trusted as the only signal a transaction had completed — until real payments went unrecorded because it silently never arrived, and a self-chaining poller was built to close the gap."
 publishedAt: "2024-12-03"
 tags: ["payments", "webhooks", "reliability"]
+relatedContent: ["idempotency"]
 ---
 
 Once real money started moving through Cookeaze's wallet — users funding it, creators withdrawing from it — "the payment succeeded" needed to be a fact the backend could independently confirm, not an assumption. The original design rested that fact on a single signal: the payment provider's webhook. Paystack would call back once a transaction resolved, and the platform trusted that call as the whole story.
