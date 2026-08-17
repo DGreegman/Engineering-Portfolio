@@ -6,7 +6,11 @@ import {
   type ResolvedArticleSummary,
 } from "@/lib/content/relationships";
 import { formatDate } from "@/lib/utils/format-date";
-import type { ArticleFrontmatter, WorkFrontmatter } from "@/lib/content/schema";
+import type {
+  ArticleFrontmatter,
+  KnowledgeFrontmatter,
+  WorkFrontmatter,
+} from "@/lib/content/schema";
 import type { ContentItem } from "@/types/content";
 
 /**
@@ -54,10 +58,30 @@ import type { ContentItem } from "@/types/content";
  * anticipated here before this task began. Theme adjacency remains out of
  * scope, for the identical reason stated above: case studies still carry
  * no theme metadata of their own.
+ *
+ * **Knowledge → Work reverse discovery (Task 7.26, `docs/76-MILESTONE_7_
+ * DISCOVERY_REASSESSMENT.md` §13, `docs/77-KNOWLEDGE_REVERSE_WORK_DISCOVERY_
+ * IMPLEMENTATION_PLAN.md`) is now implemented — see
+ * `resolveRelatedWorkForArticle()` below.** The reverse of
+ * `resolveRelatedKnowledge()` above: that function resolves a Case Study's
+ * own `frontmatter.relatedContent` against real Knowledge articles; this one
+ * starts from a Knowledge article and asks "which Case Study or Case
+ * Studies name *me* in their own `relatedContent` array" — the identical
+ * "reverse lookup over an already-authored field" shape
+ * `resolveRelatedWorkForLog()` (`engineering-logs.ts`) already established
+ * for Engineering Log → Work. Placed here, not in `relationships.ts`,
+ * specifically because every dependency it needs (`getAllCaseStudies()`,
+ * `toCaseStudySummary()`, `DEFAULT_RELATIONSHIP_LIMIT`) is already local to
+ * this exact file — `docs/77` §6.1's own Architecture Decision, chosen to
+ * avoid introducing a new circular import between this file and
+ * `relationships.ts` (unlike the pre-existing, already-working cycle
+ * between this file and `engineering-logs.ts`, which this addition does not
+ * need to replicate to get the same result).
  */
 
 type WorkItem = ContentItem<WorkFrontmatter>;
 type EngineeringLogItem = ContentItem<ArticleFrontmatter>;
+type KnowledgeItem = ContentItem<KnowledgeFrontmatter>;
 
 /**
  * Four is an intentional editorial maximum, not an incidental implementation
@@ -131,6 +155,60 @@ export function resolveRelatedKnowledge(
     caseStudy.slug,
     limit,
   );
+}
+
+/**
+ * Applied In These Case Studies (Task 7.26, `docs/76` §13, `docs/77` §6) —
+ * the reverse of `resolveRelatedKnowledge()` above: "which real, published
+ * Work case study or case studies name *this Knowledge article* in their
+ * own `relatedContent`." No new authored field — the relationship is
+ * entirely derived from Work's own already-real `relatedContent` array, the
+ * one and only source of truth, per `docs/77` §7: `caseStudy.frontmatter.
+ * relatedContent.includes(article.slug)`, and nothing else. No tag, topic,
+ * domain, technology, title, or text signal participates in this test.
+ *
+ * Cardinality is many-to-many, the identical fact already established for
+ * `resolveRelatedWorkForLog()`'s own reverse lookup (`engineering-logs.ts`)
+ * — nothing prevents two Work documents from both naming the same Knowledge
+ * slug, so this always returns a collection, never assumes "at most one."
+ * No self-exclusion parameter, unlike `resolveArticleReferences()`'s own
+ * `excludeSlug`: Knowledge and Work occupy disjoint slug namespaces, so a
+ * genuine self-link is structurally impossible here, not merely guarded
+ * against defensively.
+ *
+ * Ordering follows `allCaseStudies`' own incoming order (`getAllCaseStudies()`'s
+ * default order, by default) — not an order declared by the Knowledge
+ * article itself, since the relationship is authored entirely on the *Work*
+ * side; there is no single "declared order" belonging to the article to
+ * preserve, the same reasoning `resolveRelatedWorkForLog()`'s own docstring
+ * already gives for the identical structural situation.
+ *
+ * No de-dup `Set`: each pass through `allCaseStudies` visits a distinct
+ * Work document at most once, so two different Work documents both citing
+ * the same Knowledge slug is the intended many-to-many yield (two real
+ * cards), not a duplicate to collapse.
+ *
+ * Reuses `toCaseStudySummary()` and `DEFAULT_RELATIONSHIP_LIMIT` unmodified
+ * — the same mapper and the same shared editorial ceiling every other
+ * primary (non-fallback) Work-side relationship region in this file already
+ * uses, not `relationships.ts`'s smaller Same-Topic-fallback-specific cap.
+ */
+export function resolveRelatedWorkForArticle(
+  article: KnowledgeItem,
+  allCaseStudies: WorkItem[] = getAllCaseStudies(),
+  limit = DEFAULT_RELATIONSHIP_LIMIT,
+): ResolvedArticleSummary[] {
+  const resolved: ResolvedArticleSummary[] = [];
+
+  for (const caseStudy of allCaseStudies) {
+    if (!caseStudy.frontmatter.relatedContent.includes(article.slug)) {
+      continue;
+    }
+    resolved.push(toCaseStudySummary(caseStudy));
+    if (resolved.length >= limit) break;
+  }
+
+  return resolved;
 }
 
 export interface ResolvedEngineeringLogSummary {

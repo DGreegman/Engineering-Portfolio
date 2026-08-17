@@ -50,6 +50,7 @@ import { SeriesBanner } from "@/components/content/series-banner";
 import { ArticleBody } from "@/components/content/article-body";
 import { TableOfContents } from "@/components/content/table-of-contents";
 import { RelatedLearning } from "@/components/content/related-learning";
+import { AppliedInCaseStudies } from "@/components/content/applied-in-case-studies";
 import { PreviousNext } from "@/components/content/previous-next";
 import { extractHeadings } from "@/lib/content/toc";
 import {
@@ -57,6 +58,8 @@ import {
   resolvePreviousNext,
   hasRelatedLearningContent,
 } from "@/lib/content/relationships";
+import { resolveRelatedWorkForArticle } from "@/lib/content/case-study-relationships";
+import { getAllCaseStudies } from "@/lib/content/case-studies";
 import { findTopic, type Topic } from "@/lib/constants/placeholder-topics";
 import { PLACEHOLDER_SERIES } from "@/lib/constants/placeholder-series";
 import {
@@ -234,6 +237,16 @@ export default async function KnowledgeSlugPage({
     const allArticles = getAllArticles();
     const relatedLearningGroups = resolveRelatedLearning(article, allArticles);
     const previousNext = resolvePreviousNext(article, allArticles);
+    // Task 7.26 (docs/76 §13, docs/77): the one new collection read this
+    // route performs — Work has never been read from `/knowledge/[slug]`
+    // before this feature. Read once, handed straight to the one resolver
+    // that needs it, the same "read once per request" discipline
+    // `allArticles` above already follows.
+    const allCaseStudies = getAllCaseStudies();
+    const appliedCaseStudies = resolveRelatedWorkForArticle(
+      article,
+      allCaseStudies,
+    );
 
     return (
       <DocumentLayout
@@ -286,6 +299,15 @@ export default async function KnowledgeSlugPage({
           // a caller that doesn't pre-check.
           hasRelatedLearningContent(relatedLearningGroups) ? (
             <RelatedLearning groups={relatedLearningGroups} />
+          ) : undefined
+        }
+        appliedInCaseStudies={
+          // Same "pass no element at all when empty" discipline as
+          // relatedLearning above — DocumentLayout's own
+          // `{appliedInCaseStudies && <Section>}` check only sees whether
+          // the *prop* is truthy, not whether it would render anything.
+          appliedCaseStudies.length > 0 ? (
+            <AppliedInCaseStudies items={appliedCaseStudies} />
           ) : undefined
         }
         previousNext={

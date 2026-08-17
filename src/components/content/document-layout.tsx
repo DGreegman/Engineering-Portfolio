@@ -111,6 +111,22 @@
  * Follows the same conditionally-omitted-`Section`, hardcoded-`aria-label`
  * pattern every other slot in this group already uses.
  *
+ * `appliedInCaseStudies` (Task 7.26, `docs/76-MILESTONE_7_DISCOVERY_
+ * REASSESSMENT.md` §13, `docs/77-KNOWLEDGE_REVERSE_WORK_DISCOVERY_
+ * IMPLEMENTATION_PLAN.md` §10): the Knowledge article's own new closing
+ * relationship region — "which real Case Study or Case Studies applied
+ * this concept," resolved by `resolveRelatedWorkForArticle()`
+ * (`lib/content/case-study-relationships.ts`), the reverse of Work's own
+ * `relatedKnowledge` slot above. A new slot rather than folding it into
+ * `relatedLearning`: that slot is already correctly scoped to a genuinely
+ * different set of relationships — Prerequisites, Continue Learning,
+ * Related Concepts, Same-Topic — all Knowledge-internal, the identical
+ * "don't reuse a slot already correctly scoped to a different
+ * relationship" reasoning already given twice above for `relatedWork` and
+ * `relatedCaseStudies`. Positioned immediately after `relatedLearning`,
+ * ahead of Work's own three slots — Knowledge's two closing-relationship
+ * regions stay contiguous, exactly mirroring how Work's three already do.
+ *
  * Every `?? <PlaceholderRegion />` fallback below is now a defensive-only
  * path, not a "still coming" signal — every real article resolves a topic
  * (required by schema) and has body content, and every route always passes
@@ -177,6 +193,8 @@ export interface DocumentLayoutProps {
   tableOfContents?: React.ReactNode;
   body?: React.ReactNode;
   relatedLearning?: React.ReactNode;
+  /** Knowledge only (Task 7.26) — see this file's own docstring. */
+  appliedInCaseStudies?: React.ReactNode;
   /** Case Study only (Task 5.3) — see this file's own docstring. */
   relatedKnowledge?: React.ReactNode;
   /** Case Study only (Task 5.3) — see this file's own docstring. */
@@ -195,6 +213,7 @@ export function DocumentLayout({
   tableOfContents,
   body,
   relatedLearning,
+  appliedInCaseStudies,
   relatedKnowledge,
   engineeringLogs,
   relatedCaseStudies,
@@ -250,6 +269,16 @@ export function DocumentLayout({
       {relatedLearning && (
         <Section aria-label="Related Learning" spacing="md" width="full">
           {relatedLearning}
+        </Section>
+      )}
+
+      {appliedInCaseStudies && (
+        <Section
+          aria-label="Applied In These Case Studies"
+          spacing="md"
+          width="full"
+        >
+          {appliedInCaseStudies}
         </Section>
       )}
 
