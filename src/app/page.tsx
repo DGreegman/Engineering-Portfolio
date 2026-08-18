@@ -12,7 +12,7 @@ import { getFeaturedCaseStudies } from "@/lib/content/work";
 import { getAllEngineeringLogEntries } from "@/lib/content/engineering-logs";
 import { sortByPublishedDate } from "@/lib/content/loader";
 import { formatDate } from "@/lib/utils/format-date";
-import { SITE_NAME } from "@/lib/constants/site";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 import type { NotebookArticle } from "@/lib/constants/placeholder-knowledge";
 import type { EngineeringLogEntry } from "@/lib/constants/placeholder-log";
 import type { ContentItem } from "@/types/content";
@@ -21,10 +21,50 @@ import type {
   KnowledgeFrontmatter,
 } from "@/lib/content/schema";
 
+// Task 8.2 (docs/83 §5): one local const, read three times below (title,
+// openGraph.description, twitter.description) — plain in-file reuse of a
+// string this file already owns, not a cross-file abstraction.
+const description =
+  "An engineering workspace: documented case studies, reusable engineering knowledge, and the trade-offs behind real backend systems.";
+
+const title = `${SITE_NAME} — Engineering Workspace`;
+
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — Engineering Workspace`,
-  description:
-    "An engineering workspace: documented case studies, reusable engineering knowledge, and the trade-offs behind real backend systems.",
+  // Task 8.1 (docs/81 §3.4): the one route that leads with identity
+  // ("Gracious Obeagu — ...") rather than trailing it — `absolute` keeps
+  // this exact text and deliberately bypasses root layout's own
+  // `title.template` (which would otherwise append a second "— Gracious
+  // Obeagu" suffix), rather than reflowing this into the fragment shape
+  // every other route now uses.
+  title: { absolute: title },
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): alternates is a nested Metadata field,
+  // replaced wholesale (not deep-merged) the moment a route defines its
+  // own — the identical rule already proven for openGraph/twitter, docs/83
+  // §3. `types` is repeated here verbatim from root so this route doesn't
+  // silently lose its RSS auto-discovery link.
+  alternates: {
+    canonical: "/",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  // Task 8.2 (docs/83 §5): a complete openGraph/twitter object — root's
+  // own siteName/type is repeated here on purpose (Next's own metadata
+  // merging replaces, not deep-merges, a child's openGraph object the
+  // moment one is defined at all, docs/83 §3).
+  openGraph: {
+    title,
+    description,
+    url: "/",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 /**

@@ -14,11 +14,34 @@ import {
 } from "@/lib/content/case-studies";
 import { getProjectLibraryHref } from "@/lib/content/work";
 import { CONTINUE_EXPLORING_COPY } from "@/lib/constants/work-copy";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+
+// Task 8.2 (docs/83 §5): one local const, read three times below.
+const description =
+  "Engineering case studies documenting the problems, constraints, architectural decisions, and trade-offs behind real systems.";
 
 export const metadata: Metadata = {
-  title: "Work — Engineering Portfolio",
-  description:
-    "Engineering case studies documenting the problems, constraints, architectural decisions, and trade-offs behind real systems.",
+  title: "Work",
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): types repeated verbatim from root.
+  alternates: {
+    canonical: "/work",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "Work",
+    description,
+    url: "/work",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Work",
+    description,
+  },
 };
 
 /**

@@ -34,17 +34,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchResults } from "@/components/search/search-results";
 import { hasSearchResults, searchContent } from "@/lib/content/search";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+
+// Task 8.2 (docs/83 §5, §10): one local const, read three times below.
+const description =
+  "Search Knowledge, Work, and Engineering Log by title, description, or tag.";
 
 export const metadata: Metadata = {
-  title: "Search — Engineering Portfolio",
-  description:
-    "Search Knowledge, Work, and Engineering Log by title, description, or tag.",
+  title: "Search",
+  description,
   // A search-results URL shouldn't be indexed — docs/41 §18's explicit
-  // requirement. No canonical URL, no Open Graph, no structured data —
-  // the same bounded metadata scope docs/35/docs/37/docs/40 already drew.
+  // requirement, unmodified by Task 8.2: appended to below, never
+  // replaced. A person directly sharing a /search link should still see
+  // an accurate preview (docs/82 §16) — a different concern from whether
+  // search engines index the page, which this field alone governs.
   robots: {
     index: false,
     follow: true,
+  },
+  // Task 8.3 (docs/84 §11, docs/85 §9): a single, query-agnostic canonical
+  // — this page's metadata is static, so it structurally cannot vary by
+  // `?q=`, which is exactly correct for consolidating every query variant
+  // onto one URL. Kept alongside, not instead of, the `noindex` above —
+  // defense-in-depth, not a replacement for it. `types` repeated verbatim
+  // from root, same reasoning as every other route in this task.
+  alternates: {
+    canonical: "/search",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "Search",
+    description,
+    url: "/search",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Search",
+    description,
   },
 };
 

@@ -75,6 +75,7 @@ import {
   resolveRelatedCaseStudies,
   resolvePreviousNextCaseStudy,
 } from "@/lib/content/case-study-relationships";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 
 export function generateStaticParams() {
   return getCaseStudySlugs().map((slug) => ({ slug }));
@@ -87,9 +88,40 @@ export async function generateMetadata({
   if (!caseStudyExists(slug)) return {};
 
   const { frontmatter } = getCaseStudyBySlug(slug);
+  const title = `${frontmatter.title} — Work`;
+  const url = `/work/${slug}`;
   return {
-    title: `${frontmatter.title} — Work — Engineering Portfolio`,
+    title,
     description: frontmatter.description,
+    // Task 8.3 (docs/84, docs/85 §14): reuses the exact same `url` value
+    // already computed for openGraph.url below; types repeated verbatim
+    // from root so this route doesn't lose RSS auto-discovery.
+    alternates: {
+      canonical: url,
+      types: {
+        "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+      },
+    },
+    // Task 8.2 (docs/83 §7): section reads `domain`, not `topic` — Work
+    // case studies carry no `topic` field at all (workFrontmatterSchema
+    // deliberately excludes it); `domain` is the real, structurally
+    // analogous, already-required field.
+    openGraph: {
+      title,
+      description: frontmatter.description,
+      url,
+      siteName: SITE_NAME,
+      type: "article",
+      publishedTime: frontmatter.publishedAt.toISOString(),
+      modifiedTime: frontmatter.updatedAt?.toISOString(),
+      tags: frontmatter.tags,
+      section: frontmatter.domain,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: frontmatter.description,
+    },
   };
 }
 

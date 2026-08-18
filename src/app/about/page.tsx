@@ -26,11 +26,36 @@ import { CurrentInterests } from "@/components/about/current-interests";
 import { Tools } from "@/components/about/tools";
 import { LearningRoadmap } from "@/components/about/learning-roadmap";
 import { Contact } from "@/components/about/contact";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+
+// Task 8.2 (docs/83 §5): one local const, read three times below.
+const description =
+  "Software Engineer and Technical Lead — engineering principles, current interests, tools, and how to get in touch.";
 
 export const metadata: Metadata = {
-  title: "About — Engineering Portfolio",
-  description:
-    "Software Engineer and Technical Lead — engineering principles, current interests, tools, and how to get in touch.",
+  title: "About",
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): types repeated verbatim from root —
+  // alternates is replaced wholesale, not deep-merged, the moment a route
+  // defines its own (docs/83 §3's identical rule for openGraph/twitter).
+  alternates: {
+    canonical: "/about",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "About",
+    description,
+    url: "/about",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About",
+    description,
+  },
 };
 
 export default function AboutPage() {

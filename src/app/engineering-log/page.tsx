@@ -33,11 +33,34 @@ import { LogEntryRow } from "@/components/engineering-log/log-entry-row";
 import { getAllEngineeringLogEntries } from "@/lib/content/engineering-logs";
 import { sortByPublishedDate } from "@/lib/content/loader";
 import { formatDate } from "@/lib/utils/format-date";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+
+// Task 8.2 (docs/83 §5): one local const, read three times below.
+const description =
+  "A chronological record of engineering discovery — debugging sessions, experiments, failed approaches, and the process behind the finished work.";
 
 export const metadata: Metadata = {
-  title: "Engineering Log — Engineering Portfolio",
-  description:
-    "A chronological record of engineering discovery — debugging sessions, experiments, failed approaches, and the process behind the finished work.",
+  title: "Engineering Log",
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): types repeated verbatim from root.
+  alternates: {
+    canonical: "/engineering-log",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "Engineering Log",
+    description,
+    url: "/engineering-log",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Engineering Log",
+    description,
+  },
 };
 
 export default function EngineeringLogIndexPage() {

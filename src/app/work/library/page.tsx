@@ -6,11 +6,34 @@ import { CaseStudyListing } from "@/components/work/case-study-listing";
 import { ContinueExploring } from "@/components/work/continue-exploring";
 import { getCaseStudyLibrary } from "@/lib/content/case-studies";
 import { LIBRARY_CONTINUE_EXPLORING_COPY } from "@/lib/constants/work-library-copy";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+
+// Task 8.2 (docs/83 §5): one local const, read three times below.
+const description =
+  "The complete archive of engineering case studies, organized by domain, engineering theme, and status.";
 
 export const metadata: Metadata = {
-  title: "Case Study Library — Engineering Portfolio",
-  description:
-    "The complete archive of engineering case studies, organized by domain, engineering theme, and status.",
+  title: "Case Study Library",
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): types repeated verbatim from root.
+  alternates: {
+    canonical: "/work/library",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "Case Study Library",
+    description,
+    url: "/work/library",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Case Study Library",
+    description,
+  },
 };
 
 /**

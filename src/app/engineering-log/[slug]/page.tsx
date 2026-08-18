@@ -51,6 +51,7 @@ import {
   resolveRelatedWorkForLog,
   resolvePreviousNextLog,
 } from "@/lib/content/engineering-logs";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 
 export function generateStaticParams() {
   return getEngineeringLogSlugs().map((slug) => ({ slug }));
@@ -63,9 +64,38 @@ export async function generateMetadata({
   if (!engineeringLogEntryExists(slug)) return {};
 
   const { frontmatter } = getEngineeringLogEntryBySlug(slug);
+  const title = `${frontmatter.title} — Engineering Log`;
+  const url = `/engineering-log/${slug}`;
   return {
-    title: `${frontmatter.title} — Engineering Log — Engineering Portfolio`,
+    title,
     description: frontmatter.description,
+    // Task 8.3 (docs/84, docs/85 §14): reuses the exact same `url` value
+    // already computed for openGraph.url below; types repeated verbatim
+    // from root so this route doesn't lose RSS auto-discovery.
+    alternates: {
+      canonical: url,
+      types: {
+        "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+      },
+    },
+    // Task 8.2 (docs/83 §8): no `section` field — articleFrontmatterSchema
+    // (which this collection uses directly) has no topic/domain-equivalent
+    // value; omitted rather than forced onto an ill-fitting field.
+    openGraph: {
+      title,
+      description: frontmatter.description,
+      url,
+      siteName: SITE_NAME,
+      type: "article",
+      publishedTime: frontmatter.publishedAt.toISOString(),
+      modifiedTime: frontmatter.updatedAt?.toISOString(),
+      tags: frontmatter.tags,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: frontmatter.description,
+    },
   };
 }
 

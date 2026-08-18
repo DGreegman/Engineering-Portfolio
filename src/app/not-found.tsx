@@ -34,7 +34,7 @@ import { Stack } from "@/components/layout/stack";
 import { ContinueExploring } from "@/components/work/continue-exploring";
 
 export const metadata: Metadata = {
-  title: "Page Not Found — Engineering Portfolio",
+  title: "Page Not Found",
   description: "The page you're looking for doesn't exist.",
 };
 

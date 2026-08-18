@@ -79,6 +79,7 @@ import {
 } from "@/lib/content/articles";
 import { sortByPublishedDate } from "@/lib/content/loader";
 import { TOPIC_SLUGS, type TopicSlug } from "@/lib/content/topics";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 
 /**
  * Topic-slug validity, re-sourced to the real, authoritative vocabulary
@@ -117,17 +118,76 @@ export async function generateMetadata({
 
   const topic = resolveTopic(slug);
   if (topic) {
+    const title = `${topic.title} — Knowledge`;
+    const url = `/knowledge/${slug}`;
     return {
-      title: `${topic.title} — Knowledge — Engineering Portfolio`,
+      title,
       description: topic.description,
+      // Task 8.3 (docs/84, docs/85 §14): reuses the exact same `url` value
+      // already computed for openGraph.url below; types repeated verbatim
+      // from root so this branch doesn't lose RSS auto-discovery.
+      alternates: {
+        canonical: url,
+        types: {
+          "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+        },
+      },
+      // Task 8.2 (docs/83 §6): a topic page is a listing, not a single
+      // authored document — website-typed, not article-typed, despite
+      // sharing this generateMetadata() with the article branch below.
+      openGraph: {
+        title,
+        description: topic.description,
+        url,
+        siteName: SITE_NAME,
+        type: "website",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description: topic.description,
+      },
     };
   }
 
   if (articleExists(slug)) {
     const { frontmatter } = getArticleBySlug(slug);
+    const title = `${frontmatter.title} — Knowledge`;
+    const url = `/knowledge/${slug}`;
     return {
-      title: `${frontmatter.title} — Knowledge — Engineering Portfolio`,
+      title,
       description: frontmatter.description,
+      // Task 8.3 (docs/84, docs/85 §14): reuses the exact same `url` value
+      // already computed for openGraph.url below; types repeated verbatim
+      // from root so this branch doesn't lose RSS auto-discovery.
+      alternates: {
+        canonical: url,
+        types: {
+          "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+        },
+      },
+      // Task 8.2 (docs/83 §6): a complete openGraph/twitter object — every
+      // field here is a direct read of frontmatter that already exists,
+      // no new content authored. article:published_time needs a string;
+      // publishedAt is a real Date at runtime (z.coerce.date(), schema.ts),
+      // so toISOString() converts it, the same native-Date-method
+      // discipline rss.ts's own toUTCString() already establishes.
+      openGraph: {
+        title,
+        description: frontmatter.description,
+        url,
+        siteName: SITE_NAME,
+        type: "article",
+        publishedTime: frontmatter.publishedAt.toISOString(),
+        modifiedTime: frontmatter.updatedAt?.toISOString(),
+        tags: frontmatter.tags,
+        section: frontmatter.topic,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description: frontmatter.description,
+      },
     };
   }
 

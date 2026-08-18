@@ -15,6 +15,7 @@ import {
   START_HERE_COPY,
   LEARNING_SERIES_COPY,
 } from "@/lib/constants/knowledge-copy";
+import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 import {
   getAllArticles,
   getFeaturedArticles,
@@ -22,10 +23,32 @@ import {
 } from "@/lib/content/articles";
 import { sortByPublishedDate } from "@/lib/content/loader";
 
+// Task 8.2 (docs/83 §5): one local const, read three times below.
+const description =
+  "A long-term collection of engineering concepts, architecture decisions, backend systems, security, cloud computing, and lessons learned.";
+
 export const metadata: Metadata = {
-  title: "Knowledge — Engineering Portfolio",
-  description:
-    "A long-term collection of engineering concepts, architecture decisions, backend systems, security, cloud computing, and lessons learned.",
+  title: "Knowledge",
+  description,
+  // Task 8.3 (docs/84, docs/85 §14): types repeated verbatim from root.
+  alternates: {
+    canonical: "/knowledge",
+    types: {
+      "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
+    },
+  },
+  openGraph: {
+    title: "Knowledge",
+    description,
+    url: "/knowledge",
+    siteName: SITE_NAME,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Knowledge",
+    description,
+  },
 };
 
 /**
