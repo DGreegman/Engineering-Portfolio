@@ -7,6 +7,7 @@ import { ContinueExploring } from "@/components/work/continue-exploring";
 import { getCaseStudyLibrary } from "@/lib/content/case-studies";
 import { LIBRARY_CONTINUE_EXPLORING_COPY } from "@/lib/constants/work-library-copy";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import { JsonLd } from "@/components/content/json-ld";
 
 // Task 8.2 (docs/83 §5): one local const, read three times below.
 const description =
@@ -69,8 +70,39 @@ export default function CaseStudyLibraryPage() {
   // goes quiet, with its own existing, honest empty state.
   const library = getCaseStudyLibrary();
 
+  // Task 8.4 (docs/86 §12/§16, docs/87 §13): CollectionPage + ItemList, no
+  // BreadcrumbList — this route renders no visible Breadcrumb. `url`/`@id`
+  // reuses this file's own existing `/work/library` canonical string (Task
+  // 8.3). `itemListElement` is built directly from `library.caseStudies` —
+  // `getCaseStudyLibrary()`'s own real, complete return value, already
+  // computed above — not a second selection algorithm.
+  const libraryUrl = `${SITE_URL}/work/library`;
+  const libraryJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": libraryUrl,
+        url: libraryUrl,
+        name: "Case Study Library",
+        description,
+        isPartOf: { "@id": `${SITE_URL}#website` },
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: library.caseStudies.map((caseStudy, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: caseStudy.title,
+            url: `${SITE_URL}${caseStudy.href}`,
+          })),
+        },
+      },
+    ],
+  };
+
   return (
     <>
+      <JsonLd data={libraryJsonLd} />
       <LibraryHeader count={library.count} />
       <BrowseLenses caseStudies={library.caseStudies} themes={library.themes} />
       <CaseStudyListing caseStudies={library.caseStudies} />

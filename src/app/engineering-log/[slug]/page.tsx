@@ -52,6 +52,7 @@ import {
   resolvePreviousNextLog,
 } from "@/lib/content/engineering-logs";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import { JsonLd } from "@/components/content/json-ld";
 
 export function generateStaticParams() {
   return getEngineeringLogSlugs().map((slug) => ({ slug }));
@@ -130,38 +131,88 @@ export default async function EngineeringLogEntryPage({
   const relatedWork = resolveRelatedWorkForLog(logEntry, allCaseStudies);
   const previousNext = resolvePreviousNextLog(logEntry, allLogEntries);
 
+  // Task 8.4 (docs/86 §14, docs/87 §14/§15): BlogPosting + BreadcrumbList.
+  // `logEntryUrl` recomputes the identical formula generateMetadata()
+  // already uses for this same document's own alternates.canonical/
+  // openGraph.url — a second, textually-separate expression producing the
+  // same string, not a shared cross-function variable (docs/87 §21.2).
+  // Breadcrumb has two levels, not three — no intermediate category tier,
+  // matching the visible <Breadcrumb /> below exactly.
+  const logEntryUrl = `${SITE_URL}/engineering-log/${slug}`;
+  const logEntryJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BlogPosting",
+        "@id": logEntryUrl,
+        url: logEntryUrl,
+        headline: logEntry.frontmatter.title,
+        description: logEntry.frontmatter.description,
+        datePublished: logEntry.frontmatter.publishedAt.toISOString(),
+        dateModified: logEntry.frontmatter.updatedAt?.toISOString(),
+        keywords: logEntry.frontmatter.tags,
+        author: { "@id": `${SITE_URL}#person` },
+        publisher: { "@id": `${SITE_URL}#person` },
+        mainEntityOfPage: logEntryUrl,
+        isPartOf: { "@id": `${SITE_URL}#website` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Engineering Log",
+            item: `${SITE_URL}/engineering-log`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: logEntry.frontmatter.title,
+            item: logEntryUrl,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
-    <DocumentLayout
-      breadcrumb={
-        <Breadcrumb
-          items={[{ label: "Engineering Log", href: "/engineering-log" }]}
-          current={logEntry.frontmatter.title}
-        />
-      }
-      header={
-        <LogEntryHeader
-          title={logEntry.frontmatter.title}
-          description={logEntry.frontmatter.description}
-          publishedAt={formatDate(logEntry.frontmatter.publishedAt)}
-          tags={logEntry.frontmatter.tags}
-        />
-      }
-      tableOfContents={<TableOfContents headings={headings} />}
-      body={<ArticleBody source={logEntry.body} headings={headings} />}
-      relatedKnowledge={
-        relatedKnowledge.length > 0 ? (
-          <RelatedKnowledge items={relatedKnowledge} />
-        ) : undefined
-      }
-      relatedWork={
-        relatedWork.length > 0 ? <RelatedWork items={relatedWork} /> : undefined
-      }
-      previousNext={
-        <PreviousNext
-          previous={previousNext.previous}
-          next={previousNext.next}
-        />
-      }
-    />
+    <>
+      <JsonLd data={logEntryJsonLd} />
+      <DocumentLayout
+        breadcrumb={
+          <Breadcrumb
+            items={[{ label: "Engineering Log", href: "/engineering-log" }]}
+            current={logEntry.frontmatter.title}
+          />
+        }
+        header={
+          <LogEntryHeader
+            title={logEntry.frontmatter.title}
+            description={logEntry.frontmatter.description}
+            publishedAt={formatDate(logEntry.frontmatter.publishedAt)}
+            tags={logEntry.frontmatter.tags}
+          />
+        }
+        tableOfContents={<TableOfContents headings={headings} />}
+        body={<ArticleBody source={logEntry.body} headings={headings} />}
+        relatedKnowledge={
+          relatedKnowledge.length > 0 ? (
+            <RelatedKnowledge items={relatedKnowledge} />
+          ) : undefined
+        }
+        relatedWork={
+          relatedWork.length > 0 ? (
+            <RelatedWork items={relatedWork} />
+          ) : undefined
+        }
+        previousNext={
+          <PreviousNext
+            previous={previousNext.previous}
+            next={previousNext.next}
+          />
+        }
+      />
+    </>
   );
 }

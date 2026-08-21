@@ -97,7 +97,7 @@ export function AboutHeader() {
             sizes="(min-width: 1024px) 24rem, (min-width: 768px) 18rem, 100vw"
             className="object-cover"
             style={{ objectPosition: "30% 50%" }}
-            priority
+            preload={true}
           />
         </div>
       </div>

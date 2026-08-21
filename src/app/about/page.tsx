@@ -26,11 +26,25 @@ import { CurrentInterests } from "@/components/about/current-interests";
 import { Tools } from "@/components/about/tools";
 import { LearningRoadmap } from "@/components/about/learning-roadmap";
 import { Contact } from "@/components/about/contact";
+import { JsonLd } from "@/components/content/json-ld";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 
 // Task 8.2 (docs/83 §5): one local const, read three times below.
 const description =
   "Software Engineer and Technical Lead — engineering principles, current interests, tools, and how to get in touch.";
+
+// Task 8.4 (docs/86 §8, docs/87 §9): a reference to the Person node the
+// homepage fully defines, not a redefinition of it — the same `@id`
+// `page.tsx` (the homepage) already uses.
+const aboutPageNode = {
+  "@type": "AboutPage",
+  "@id": `${SITE_URL}/about`,
+  url: `${SITE_URL}/about`,
+  name: "About",
+  description,
+  isPartOf: { "@id": `${SITE_URL}#website` },
+  mainEntity: { "@id": `${SITE_URL}#person` },
+};
 
 export const metadata: Metadata = {
   title: "About",
@@ -61,6 +75,12 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [aboutPageNode],
+        }}
+      />
       <AboutHeader />
       <Journey />
       <EngineeringPrinciples />

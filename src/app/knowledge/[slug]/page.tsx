@@ -80,6 +80,7 @@ import {
 import { sortByPublishedDate } from "@/lib/content/loader";
 import { TOPIC_SLUGS, type TopicSlug } from "@/lib/content/topics";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import { JsonLd } from "@/components/content/json-ld";
 
 /**
  * Topic-slug validity, re-sourced to the real, authoritative vocabulary
@@ -236,8 +237,38 @@ export default async function KnowledgeSlugPage({
       .map((relatedSlug) => findTopic(relatedSlug))
       .filter((related): related is Topic => related !== undefined);
 
+    // Task 8.4 (docs/86 §10, docs/87 §11): CollectionPage + ItemList — no
+    // BreadcrumbList (this branch renders no visible Breadcrumb, confirmed
+    // live). itemListElement is built from `topicArticles` — the page's
+    // own full, real topic membership, before the Start Here/remainder
+    // presentation split — not a second selection algorithm.
+    const collectionPageUrl = `${SITE_URL}/knowledge/${slug}`;
+    const topicJsonLd = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          "@id": collectionPageUrl,
+          url: collectionPageUrl,
+          name: topic.title,
+          description: topic.description,
+          isPartOf: { "@id": `${SITE_URL}#website` },
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: topicArticles.map((article, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: article.frontmatter.title,
+              url: `${SITE_URL}/knowledge/${article.slug}`,
+            })),
+          },
+        },
+      ],
+    };
+
     return (
       <>
+        <JsonLd data={topicJsonLd} />
         <TopicHero
           title={topic.title}
           description={topic.description}
@@ -308,75 +339,130 @@ export default async function KnowledgeSlugPage({
       allCaseStudies,
     );
 
+    // Task 8.4 (docs/86 §9/§15, docs/87 §10/§15): TechArticle +
+    // BreadcrumbList. `articleUrl` recomputes the identical formula
+    // generateMetadata() already uses for this same document's own
+    // alternates.canonical/openGraph.url — a second, textually-separate
+    // expression producing the same string, not a shared cross-function
+    // variable (docs/87 §21.2's own resolution of the generateMetadata/
+    // page-component scope boundary). Breadcrumb items mirror the exact
+    // props the visible <Breadcrumb /> below already receives.
+    const articleUrl = `${SITE_URL}/knowledge/${slug}`;
+    const articleJsonLd = articleTopic && {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "TechArticle",
+          "@id": articleUrl,
+          url: articleUrl,
+          headline: metadata.title,
+          description: metadata.description,
+          datePublished: article.frontmatter.publishedAt.toISOString(),
+          dateModified: article.frontmatter.updatedAt?.toISOString(),
+          keywords: article.frontmatter.tags,
+          author: { "@id": `${SITE_URL}#person` },
+          publisher: { "@id": `${SITE_URL}#person` },
+          mainEntityOfPage: articleUrl,
+          isPartOf: { "@id": `${SITE_URL}#website` },
+        },
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Knowledge",
+              item: `${SITE_URL}/knowledge`,
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: articleTopic.title,
+              item: `${SITE_URL}${articleTopic.href}`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: metadata.title,
+              item: articleUrl,
+            },
+          ],
+        },
+      ],
+    };
+
     return (
-      <DocumentLayout
-        breadcrumb={
-          articleTopic && (
-            <Breadcrumb
-              items={[
-                { label: "Knowledge", href: "/knowledge" },
-                { label: articleTopic.title, href: articleTopic.href },
-              ]}
-              current={metadata.title}
+      <>
+        {articleJsonLd && <JsonLd data={articleJsonLd} />}
+        <DocumentLayout
+          breadcrumb={
+            articleTopic && (
+              <Breadcrumb
+                items={[
+                  { label: "Knowledge", href: "/knowledge" },
+                  { label: articleTopic.title, href: articleTopic.href },
+                ]}
+                current={metadata.title}
+              />
+            )
+          }
+          header={
+            articleTopic && (
+              <DocumentHeader
+                title={metadata.title}
+                description={metadata.description}
+                topic={articleTopic}
+                difficulty={metadata.difficulty}
+                readingTime={metadata.readingTime}
+                publishedAt={metadata.publishedAt}
+                updatedAt={metadata.updatedAt}
+                tags={metadata.tags}
+              />
+            )
+          }
+          seriesBanner={
+            metadata.series && (
+              <SeriesBanner
+                series={metadata.series}
+                seriesOrder={metadata.seriesOrder}
+              />
+            )
+          }
+          tableOfContents={<TableOfContents headings={headings} />}
+          body={<ArticleBody source={article.body} headings={headings} />}
+          relatedLearning={
+            // Task 5.7 RC refinement #2: pass no element at all — not an
+            // element that would render `null` — when there's nothing here,
+            // so `DocumentLayout`'s existing `{relatedLearning && <Section>}`
+            // check (which only sees whether the *prop* is truthy, not
+            // whether it would render anything) actually omits the region
+            // rather than rendering an empty, landmarked `<section>`. Same
+            // "no trace when absent" contract `seriesBanner` already gets
+            // from its own `metadata.series && (...)` conditional above —
+            // `RelatedLearning` still keeps its own internal check too
+            // (`hasRelatedLearningContent`), so this remains correct even for
+            // a caller that doesn't pre-check.
+            hasRelatedLearningContent(relatedLearningGroups) ? (
+              <RelatedLearning groups={relatedLearningGroups} />
+            ) : undefined
+          }
+          appliedInCaseStudies={
+            // Same "pass no element at all when empty" discipline as
+            // relatedLearning above — DocumentLayout's own
+            // `{appliedInCaseStudies && <Section>}` check only sees whether
+            // the *prop* is truthy, not whether it would render anything.
+            appliedCaseStudies.length > 0 ? (
+              <AppliedInCaseStudies items={appliedCaseStudies} />
+            ) : undefined
+          }
+          previousNext={
+            <PreviousNext
+              previous={previousNext.previous}
+              next={previousNext.next}
             />
-          )
-        }
-        header={
-          articleTopic && (
-            <DocumentHeader
-              title={metadata.title}
-              description={metadata.description}
-              topic={articleTopic}
-              difficulty={metadata.difficulty}
-              readingTime={metadata.readingTime}
-              publishedAt={metadata.publishedAt}
-              updatedAt={metadata.updatedAt}
-              tags={metadata.tags}
-            />
-          )
-        }
-        seriesBanner={
-          metadata.series && (
-            <SeriesBanner
-              series={metadata.series}
-              seriesOrder={metadata.seriesOrder}
-            />
-          )
-        }
-        tableOfContents={<TableOfContents headings={headings} />}
-        body={<ArticleBody source={article.body} headings={headings} />}
-        relatedLearning={
-          // Task 5.7 RC refinement #2: pass no element at all — not an
-          // element that would render `null` — when there's nothing here,
-          // so `DocumentLayout`'s existing `{relatedLearning && <Section>}`
-          // check (which only sees whether the *prop* is truthy, not
-          // whether it would render anything) actually omits the region
-          // rather than rendering an empty, landmarked `<section>`. Same
-          // "no trace when absent" contract `seriesBanner` already gets
-          // from its own `metadata.series && (...)` conditional above —
-          // `RelatedLearning` still keeps its own internal check too
-          // (`hasRelatedLearningContent`), so this remains correct even for
-          // a caller that doesn't pre-check.
-          hasRelatedLearningContent(relatedLearningGroups) ? (
-            <RelatedLearning groups={relatedLearningGroups} />
-          ) : undefined
-        }
-        appliedInCaseStudies={
-          // Same "pass no element at all when empty" discipline as
-          // relatedLearning above — DocumentLayout's own
-          // `{appliedInCaseStudies && <Section>}` check only sees whether
-          // the *prop* is truthy, not whether it would render anything.
-          appliedCaseStudies.length > 0 ? (
-            <AppliedInCaseStudies items={appliedCaseStudies} />
-          ) : undefined
-        }
-        previousNext={
-          <PreviousNext
-            previous={previousNext.previous}
-            next={previousNext.next}
-          />
-        }
-      />
+          }
+        />
+      </>
     );
   }
 

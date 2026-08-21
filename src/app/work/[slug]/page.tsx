@@ -76,6 +76,7 @@ import {
   resolvePreviousNextCaseStudy,
 } from "@/lib/content/case-study-relationships";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import { JsonLd } from "@/components/content/json-ld";
 
 export function generateStaticParams() {
   return getCaseStudySlugs().map((slug) => ({ slug }));
@@ -159,64 +160,117 @@ export default async function CaseStudyPage({
   );
   const previousNext = resolvePreviousNextCaseStudy(caseStudy, allCaseStudies);
 
+  // Task 8.4 (docs/86 §13, docs/87 §12/§15): CreativeWork + BreadcrumbList.
+  // `caseStudyUrl` recomputes the identical formula generateMetadata()
+  // already uses for this same document's own alternates.canonical/
+  // openGraph.url — a second, textually-separate expression producing the
+  // same string, not a shared cross-function variable (docs/87 §21.2).
+  // Breadcrumb items mirror the exact props the visible <Breadcrumb />
+  // below already receives.
+  const caseStudyUrl = `${SITE_URL}/work/${slug}`;
+  const caseStudyJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CreativeWork",
+        "@id": caseStudyUrl,
+        url: caseStudyUrl,
+        name: metadata.title,
+        description: metadata.description,
+        datePublished: caseStudy.frontmatter.publishedAt.toISOString(),
+        dateModified: caseStudy.frontmatter.updatedAt?.toISOString(),
+        keywords: caseStudy.frontmatter.tags,
+        author: { "@id": `${SITE_URL}#person` },
+        publisher: { "@id": `${SITE_URL}#person` },
+        isPartOf: { "@id": `${SITE_URL}#website` },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Work",
+            item: `${SITE_URL}/work`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Case Study Library",
+            item: `${SITE_URL}/work/library`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: metadata.title,
+            item: caseStudyUrl,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
-    <DocumentLayout
-      breadcrumb={
-        <Breadcrumb
-          items={[
-            { label: "Work", href: "/work" },
-            { label: "Case Study Library", href: "/work/library" },
-          ]}
-          current={metadata.title}
-        />
-      }
-      header={
-        <ProjectHeader
-          title={metadata.title}
-          description={metadata.description}
-          domain={metadata.domain}
-          status={metadata.status}
-          timeline={metadata.timeline}
-          difficulty={metadata.difficulty}
-          technologies={metadata.technologies}
-        />
-      }
-      tableOfContents={<TableOfContents headings={headings} />}
-      body={<ArticleBody source={caseStudy.body} headings={headings} />}
-      relatedKnowledge={
-        // Task 5.7 RC refinement #2: pass no element at all — not an
-        // element that would itself render `null` — when there's nothing
-        // to show, so `DocumentLayout`'s existing `{relatedKnowledge &&
-        // <Section>}` check (which only sees whether the *prop* is
-        // truthy, never whether it would render anything) actually omits
-        // the region instead of rendering an empty, landmarked
-        // `<section aria-label="Related Knowledge">`. `RelatedKnowledge`
-        // itself still keeps its own `items.length === 0` → `null` check
-        // too, so this stays correct even for a caller that doesn't
-        // pre-check — the same belt-and-braces shape
-        // `app/knowledge/[slug]/page.tsx` now applies to `relatedLearning`.
-        relatedKnowledge.length > 0 ? (
-          <RelatedKnowledge items={relatedKnowledge} />
-        ) : undefined
-      }
-      engineeringLogs={
-        relatedEngineeringLogs.length > 0 ? (
-          <RelatedEngineeringLogs items={relatedEngineeringLogs} />
-        ) : undefined
-      }
-      relatedCaseStudies={
-        // Same "pass no element at all when empty" discipline as every
-        // other relationship prop on this page (Task 5.7 RC refinement #2).
-        relatedCaseStudies.length > 0 ? (
-          <RelatedCaseStudies items={relatedCaseStudies} />
-        ) : undefined
-      }
-      previousNext={
-        <PreviousNext
-          previous={previousNext.previous}
-          next={previousNext.next}
-        />
-      }
-    />
+    <>
+      <JsonLd data={caseStudyJsonLd} />
+      <DocumentLayout
+        breadcrumb={
+          <Breadcrumb
+            items={[
+              { label: "Work", href: "/work" },
+              { label: "Case Study Library", href: "/work/library" },
+            ]}
+            current={metadata.title}
+          />
+        }
+        header={
+          <ProjectHeader
+            title={metadata.title}
+            description={metadata.description}
+            domain={metadata.domain}
+            status={metadata.status}
+            timeline={metadata.timeline}
+            difficulty={metadata.difficulty}
+            technologies={metadata.technologies}
+          />
+        }
+        tableOfContents={<TableOfContents headings={headings} />}
+        body={<ArticleBody source={caseStudy.body} headings={headings} />}
+        relatedKnowledge={
+          // Task 5.7 RC refinement #2: pass no element at all — not an
+          // element that would itself render `null` — when there's nothing
+          // to show, so `DocumentLayout`'s existing `{relatedKnowledge &&
+          // <Section>}` check (which only sees whether the *prop* is
+          // truthy, never whether it would render anything) actually omits
+          // the region instead of rendering an empty, landmarked
+          // `<section aria-label="Related Knowledge">`. `RelatedKnowledge`
+          // itself still keeps its own `items.length === 0` → `null` check
+          // too, so this stays correct even for a caller that doesn't
+          // pre-check — the same belt-and-braces shape
+          // `app/knowledge/[slug]/page.tsx` now applies to `relatedLearning`.
+          relatedKnowledge.length > 0 ? (
+            <RelatedKnowledge items={relatedKnowledge} />
+          ) : undefined
+        }
+        engineeringLogs={
+          relatedEngineeringLogs.length > 0 ? (
+            <RelatedEngineeringLogs items={relatedEngineeringLogs} />
+          ) : undefined
+        }
+        relatedCaseStudies={
+          // Same "pass no element at all when empty" discipline as every
+          // other relationship prop on this page (Task 5.7 RC refinement #2).
+          relatedCaseStudies.length > 0 ? (
+            <RelatedCaseStudies items={relatedCaseStudies} />
+          ) : undefined
+        }
+        previousNext={
+          <PreviousNext
+            previous={previousNext.previous}
+            next={previousNext.next}
+          />
+        }
+      />
+    </>
   );
 }

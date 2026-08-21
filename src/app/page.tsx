@@ -12,7 +12,15 @@ import { getFeaturedCaseStudies } from "@/lib/content/work";
 import { getAllEngineeringLogEntries } from "@/lib/content/engineering-logs";
 import { sortByPublishedDate } from "@/lib/content/loader";
 import { formatDate } from "@/lib/utils/format-date";
-import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import { JsonLd } from "@/components/content/json-ld";
+import {
+  GITHUB_URL,
+  LINKEDIN_URL,
+  RSS_PATH,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/constants/site";
+import { ABOUT_HEADER_COPY } from "@/lib/constants/about-copy";
 import type { NotebookArticle } from "@/lib/constants/placeholder-knowledge";
 import type { EngineeringLogEntry } from "@/lib/constants/placeholder-log";
 import type { ContentItem } from "@/types/content";
@@ -28,6 +36,54 @@ const description =
   "An engineering workspace: documented case studies, reusable engineering knowledge, and the trade-offs behind real backend systems.";
 
 const title = `${SITE_NAME} — Engineering Workspace`;
+
+// Task 8.4 (docs/86 §6/§7, docs/87 §6/§7/§8): the site-wide Person and
+// WebSite entities, fully defined exactly once, here — every other page
+// this task touches references them by `@id` only, never redefines them
+// (docs/87 §6's own "avoid duplicate entities" architecture). `@id` values
+// are the site origin plus a fixed fragment, not derived from anything
+// route-specific.
+const PERSON_ID = `${SITE_URL}#person`;
+const WEBSITE_ID = `${SITE_URL}#website`;
+
+// Task 8.4 (docs/87 §7): every property here traces to a real, already-
+// public source — SITE_NAME/SITE_URL (site.ts), the real, rendered GitHub/
+// LinkedIn links (Footer, /about's Contact section), and ABOUT_HEADER_COPY
+// (the same real copy /about itself renders). `email` is deliberately
+// omitted — CONTACT_EMAIL is real and already publicly rendered as a
+// mailto: link, but this task does not add a third, more scrape-friendly
+// encoding of it (docs/87 §7's own explicit decision). `image` is the one
+// adopted exception to this task's own "no images" default (docs/86 §26):
+// the real, existing About-page portrait, referenced at its true file
+// dimensions, not the CSS-cropped presentation used on /about itself.
+const personNode = {
+  "@type": "Person",
+  "@id": PERSON_ID,
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: ABOUT_HEADER_COPY.introduction.join(" "),
+  jobTitle: ABOUT_HEADER_COPY.headline,
+  sameAs: [GITHUB_URL, LINKEDIN_URL],
+  image: {
+    "@type": "ImageObject",
+    url: `${SITE_URL}/images/portrait.jpeg`,
+    width: 1080,
+    height: 998,
+  },
+};
+
+// Task 8.4 (docs/87 §8): no `potentialAction`/`SearchAction` — /search is
+// deliberately, entirely excluded from this architecture (docs/86 §17):
+// SearchAction would contradict /search's own existing `robots: noindex`
+// policy, unmodified by this task.
+const websiteNode = {
+  "@type": "WebSite",
+  "@id": WEBSITE_ID,
+  url: SITE_URL,
+  name: SITE_NAME,
+  description,
+  publisher: { "@id": PERSON_ID },
+};
 
 export const metadata: Metadata = {
   // Task 8.1 (docs/81 §3.4): the one route that leads with identity
@@ -121,6 +177,12 @@ export default function Home() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@graph": [personNode, websiteNode],
+        }}
+      />
       <ReadmeHero />
       <CurrentFocus />
       <HowIThink />
