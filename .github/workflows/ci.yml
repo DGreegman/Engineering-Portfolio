@@ -22,7 +22,8 @@ jobs:
     name: Validate
     runs-on: ubuntu-latest
     env:
-      SITE_URL: https://gracious.diftrak.com
+      SITE_DEPLOYMENT_ENV: preview
+      SITE_URL: https://portfolio-preview.engineering-desk-preview.pages.dev
       SITE_INDEXING_ENABLED: "false"
     steps:
       - name: Checkout repository
@@ -59,3 +60,77 @@ jobs:
         run: pnpm run build --webpack
         # Use the Webpack build mode validated for the static export. This is
         # quality assurance only — no deployment or indexing happens here.
+
+      - name: Upload static Pages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-desk-pages-${{ github.sha }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-preview:
+    name: Deploy Cloudflare Pages preview
+    needs: validate
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.validate.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
+      - name: Install pinned Wrangler
+        run: pnpm install --frozen-lockfile
+
+      - name: Download static Pages artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: engineering-desk-pages-${{ github.sha }}
+          path: out/
+
+      - name: Deploy guarded preview branch
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN is required."
+            exit 1
+          fi
+
+          if [ "${CLOUDFLARE_ACCOUNT_ID:-}" != "1b9ebe81039d0c4556b215bf27e2c6d2" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID does not match the audited Diftrak account."
+            exit 1
+          fi
+
+          if [ "$(pnpm exec wrangler --version)" != "4.160.0" ]; then
+            echo "::error::The deployment must use the repository-pinned Wrangler 4.160.0."
+            exit 1
+          fi
+
+          test -s out/index.html
+          test -s out/_headers
+          grep -Fq "X-Robots-Tag: noindex, nofollow" out/_headers
+          grep -Fq "https://portfolio-preview.engineering-desk-preview.pages.dev" out/index.html
+          grep -Fq "noindex" out/index.html
+
+          pnpm exec wrangler pages deploy out \
+            --project-name=engineering-desk-preview \
+            --branch=portfolio-preview
+
+      - name: Verify deployed preview
+        run: pnpm exec node scripts/verify-pages-preview.mjs
