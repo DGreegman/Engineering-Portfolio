@@ -17,6 +17,7 @@
     "lint:fix": "eslint --fix",
     "pretypecheck": "pnpm run mdx:prepare",
     "typecheck": "next typegen && tsc --noEmit",
+    "test:production-verifier": "node scripts/production-readiness.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
