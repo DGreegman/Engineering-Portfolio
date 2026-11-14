@@ -103,11 +103,7 @@ function WorkspaceLayout({
         className="flex flex-1 flex-col lg:flex-row lg:gap-8"
       >
         {sidebarPosition === "start" && aside}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex-1 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background focus:outline-none"
-        >
+        <main id="main-content" tabIndex={-1} className="flex-1">
           {children}
         </main>
         {sidebarPosition === "end" && aside}
