@@ -9,20 +9,17 @@
  * reproduced verbatim from lib/constants/homepage-copy.ts's
  * `BEYOND_THE_CODE_COPY`.
  *
- * The simplest section on the page, deliberately: title, four paragraphs,
- * one CTA — no grid, no list, no card, no metadata. Structurally closest
- * to the Hero (title + prose + single CTA), which reads right — this is
- * its closing bookend. No photo, skills list, timeline, stats, resume
- * summary, or social grid (Task 3.7's explicit constraints) — the CTA
+ * The closing section keeps the existing four paragraphs and one CTA, set
+ * in a warm, two-column panel that gives the contact pathway a clear final
+ * beat without becoming a compressed About page. No photo, skills list,
+ * timeline, stats, resume summary, or social grid — the CTA
  * points to `/about`, where identity and contact actually live
  * (docs/03-SITEMAP.md: no standalone Contact page, it's a section of
  * About), so this section stays reflective rather than becoming a second,
  * compressed About page.
  *
- * Left-aligned like every other section on the page — no `text-center` or
- * `mx-auto` on the content itself. That consistency is deliberate: the
- * homepage is one continuous notebook, not a page that centers itself for
- * its final beat.
+ * The copy remains left-aligned; at desktop the CTA anchors the closing
+ * panel's lower edge.
  *
  * A Server Component: static content, no interactivity.
  */
@@ -38,17 +35,23 @@ export function BeyondTheCode() {
     // width="full" — WorkspaceLayout supplies the shared PageContainer
     // for every page now; see readme-hero.tsx's comment for why.
     <Section spacing="md" width="full">
-      <Stack gap="lg" className="max-w-prose">
-        <h2 className="text-h2 text-foreground">
-          {BEYOND_THE_CODE_COPY.title}
-        </h2>
-
-        <Stack gap="sm">
-          {BEYOND_THE_CODE_COPY.introduction.map((paragraph) => (
-            <p key={paragraph} className="text-body text-muted-foreground">
-              {paragraph}
+      <div className="grid gap-8 rounded-xl border border-border bg-secondary/60 p-6 sm:p-9 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-12 lg:p-12">
+        <Stack gap="lg" className="max-w-4xl">
+          <div>
+            <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-brand-accent">
+              A little beyond the systems
             </p>
-          ))}
+            <h2 className="mt-3 text-h2 text-foreground">
+              {BEYOND_THE_CODE_COPY.title}
+            </h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 md:gap-x-8">
+            {BEYOND_THE_CODE_COPY.introduction.map((paragraph) => (
+              <p key={paragraph} className="text-small text-muted-foreground">
+                {paragraph}
+              </p>
+            ))}
+          </div>
         </Stack>
 
         <div>
@@ -62,7 +65,7 @@ export function BeyondTheCode() {
             {BEYOND_THE_CODE_COPY.primaryCta.label}
           </Button>
         </div>
-      </Stack>
+      </div>
     </Section>
   );
 }

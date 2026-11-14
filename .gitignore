@@ -16,6 +16,10 @@
 # next.js
 /.next/
 /out/
+/.open-next/
+/.wrangler/
+/.generated-mdx/
+/public/search-index.json
 
 # production
 /build

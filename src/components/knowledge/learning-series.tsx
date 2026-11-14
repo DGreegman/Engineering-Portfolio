@@ -46,8 +46,6 @@
  *
  * A Server Component: static content, no interactivity.
  */
-import Link from "next/link";
-
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
 import type { LearningSeriesEntry } from "@/lib/constants/placeholder-series";
@@ -72,23 +70,16 @@ function StepDots({ partCount }: { partCount: number }) {
 
 function SeriesRow({ series }: { series: LearningSeriesEntry }) {
   return (
-    <li className="relative -mx-4 rounded-md px-4 py-8 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
+    <li className="relative -mx-4 rounded-md px-4 py-8">
       {series.topics && series.topics.length > 0 && (
         <p className="font-mono text-caption text-muted-foreground">
           {series.topics.join(" · ")}
         </p>
       )}
-      <h3 className="mt-1 text-h4 text-foreground">
-        <Link
-          href={series.href}
-          className="after:absolute after:inset-0 focus:outline-none"
-        >
-          {series.title}
-        </Link>
-      </h3>
+      <h3 className="mt-1 text-h4 text-foreground">{series.title}</h3>
       <Stack gap="xs" className="mt-2">
         <p className="text-small text-muted-foreground">{series.description}</p>
-        <p className="flex items-center gap-2 text-caption text-muted-foreground/70">
+        <p className="flex items-center gap-2 text-caption text-muted-foreground">
           <StepDots partCount={series.partCount} />
           {series.partCount}-part series
         </p>
@@ -117,7 +108,7 @@ export function LearningSeries({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2 id="learning-series-heading" className="text-h2 text-foreground">
             {title}
           </h2>
@@ -137,7 +128,7 @@ export function LearningSeries({
             ))}
           </Stack>
         ) : (
-          <ol className="max-w-reading divide-y divide-border">
+          <ol className="max-w-5xl divide-y divide-border">
             {series.map((entry) => (
               <SeriesRow key={entry.title} series={entry} />
             ))}

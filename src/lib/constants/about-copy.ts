@@ -28,21 +28,21 @@
  *
  * First-person, matching the voice every other page on this site already
  * uses (Hero, BeyondTheCode) — docs/01 itself states the same fact in third
- * person ("Gracious Obeagu is a Backend Engineer and Technical Lead...");
+ * person ("Gracious Obeagu is a Software Engineer and Technical Lead...");
  * this is a voice adaptation, not a new claim.
  */
 export const ABOUT_HEADER_COPY = {
   eyebrow: "About",
-  headline: "Backend Engineer & Technical Lead.",
+  headline: "Software Engineer & Technical Lead.",
   introduction: [
-    "I'm a Backend Engineer and Technical Lead specializing in secure backend systems, developer tooling, API design, distributed systems, and engineering best practices.",
+    "I'm a Software Engineer and Technical Lead specializing in secure backend systems, developer tooling, API design, distributed systems, and engineering best practices.",
     "My long-term direction is to become a security-focused engineer — someone who designs resilient systems, secures modern cloud infrastructure, and embeds security into every stage of software development, rather than adding it at the end.",
   ],
 } as const;
 
 /**
  * Journey — docs/01 "Long-Term Vision" ("a living engineering hub that
- * documents the journey from Backend Engineer to Security-Focused Software
+ * documents the journey from Software Engineer to Security-Focused Software
  * Architect"), grounded further in this repository's own real Work case
  * studies rather than an invented career history (docs/39 §8/§21's own
  * "shorter is honest" ruling — no employer, year, or project count appears
@@ -151,13 +151,13 @@ export const TOOLS_COPY = {
  * Learning Roadmap — docs/01 "Future Identity" (Distributed Systems
  * Engineer, Solutions Architect, Cloud Security Engineer, Application
  * Security Engineer, Security-Focused Software Architect) and "Long-Term
- * Vision" ("the journey from Backend Engineer to Security-Focused Software
+ * Vision" ("the journey from Software Engineer to Security-Focused Software
  * Architect").
  */
 export const LEARNING_ROADMAP_COPY = {
   title: "Learning Roadmap",
   paragraphs: [
-    "The direction stated plainly in this workspace's own long-term vision: moving from Backend Engineer toward Security-Focused Software Architect — someone who designs resilient systems, secures modern cloud infrastructure, and treats security as a first-class part of the architecture rather than a checklist applied afterward.",
+    "The direction stated plainly in this workspace's own long-term vision: moving from Software Engineer toward Security-Focused Software Architect — someone who designs resilient systems, secures modern cloud infrastructure, and treats security as a first-class part of the architecture rather than a checklist applied afterward.",
     "Concretely, that means growing deeper into distributed systems design, cloud security, and application security specifically — not abandoning backend engineering, but extending the same standard behind Engineering Principles into infrastructure and threat modeling as well.",
   ],
 } as const;

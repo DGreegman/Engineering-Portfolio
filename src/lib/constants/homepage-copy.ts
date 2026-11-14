@@ -15,18 +15,22 @@
 
 export const HERO_COPY = {
   readmeLabel: "README.md",
-  headline: "An engineering workspace for curious developers.",
+  headline: "Software Engineer & Technical Lead.",
   supportingCopy: [
-    "I build reliable backend systems, explore software architecture, and document the lessons, trade-offs, and engineering decisions behind the code.",
-    "This workspace is where I share what I learn, how I solve problems, and the thinking behind the systems I build. Whether you're here to learn something new or simply curious about how I approach engineering, I hope you leave with an idea worth taking with you.",
+    "I build backend systems and APIs, with a focus on reliability, security, and the trade-offs behind production applications.",
+    "This Engineering Desk documents case studies, knowledge notes, and engineering logs—from production experience to personal and learning projects.",
   ],
   primaryCta: {
-    label: "Explore Knowledge →",
-    href: "/knowledge",
+    label: "View case studies",
+    href: "/work",
+  },
+  secondaryCta: {
+    label: "Discuss a project",
+    href: "mailto:gracious@diftrak.com?subject=Project%20enquiry",
   },
   terminal: {
-    command: "git status",
-    output: ["On branch main", "Working tree clean"],
+    command: "cat engineering-focus.txt",
+    output: ["Backend systems", "Reliable APIs", "Engineering trade-offs"],
   },
 } as const;
 
@@ -207,7 +211,7 @@ export const CASE_STUDIES_COPY = {
   title: "Engineering Case Studies",
   introduction: [
     "Every project tells a story.",
-    "These case studies explore the problems, constraints, architectural decisions, trade-offs, and lessons behind the systems I've built.",
+    "These case studies explore the problems, constraints, architectural decisions, trade-offs, and lessons behind the systems I've built. Each identifies whether the work was production, personal, fictional, or a learning project.",
     "Rather than showing what I built, they explain why it was built that way.",
   ],
   sectionLabel: "Featured Work",

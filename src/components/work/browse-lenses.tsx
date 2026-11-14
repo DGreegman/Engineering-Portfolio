@@ -137,12 +137,10 @@ function DomainLens({ caseStudies }: { caseStudies: CaseStudyEntry[] }) {
         <li key={domain}>
           <Link
             href={`#${domainAnchorId(domain)}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-small text-foreground transition-colors duration-150 hover:border-foreground/30 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-small text-foreground transition-colors duration-150 hover:border-foreground/30 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
           >
             {domain}
-            <span className="text-caption text-muted-foreground/70">
-              {count}
-            </span>
+            <span className="text-caption text-muted-foreground">{count}</span>
           </Link>
         </li>
       ))}
@@ -171,7 +169,7 @@ function ThemeLens({ themes }: { themes: EngineeringThemeEntry[] }) {
               {theme.description}
             </p>
             {theme.relatedCaseStudies.length > 0 && (
-              <p className="pt-1 text-caption text-muted-foreground/70">
+              <p className="pt-1 text-caption text-muted-foreground">
                 {theme.relatedCaseStudies.map((entry, index) => (
                   <span key={entry.href}>
                     {index > 0 && " · "}

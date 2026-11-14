@@ -27,6 +27,7 @@
  * region in this codebase already uses.
  */
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 import { notFound } from "next/navigation";
 
 import { DocumentLayout } from "@/components/content/document-layout";
@@ -57,6 +58,8 @@ import { JsonLd } from "@/components/content/json-ld";
 export function generateStaticParams() {
   return getEngineeringLogSlugs().map((slug) => ({ slug }));
 }
+
+export const dynamicParams = false;
 
 export async function generateMetadata({
   params,
@@ -91,11 +94,22 @@ export async function generateMetadata({
       publishedTime: frontmatter.publishedAt.toISOString(),
       modifiedTime: frontmatter.updatedAt?.toISOString(),
       tags: frontmatter.tags,
+
+      images: [
+        {
+          url: SOCIAL_IMAGE.url,
+          width: SOCIAL_IMAGE.width,
+          height: SOCIAL_IMAGE.height,
+          alt: SOCIAL_IMAGE.alt,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: frontmatter.description,
+
+      images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
     },
   };
 }
@@ -195,7 +209,13 @@ export default async function EngineeringLogEntryPage({
           />
         }
         tableOfContents={<TableOfContents headings={headings} />}
-        body={<ArticleBody source={logEntry.body} headings={headings} />}
+        body={
+          <ArticleBody
+            collection="engineering-log"
+            slug={slug}
+            headings={headings}
+          />
+        }
         relatedKnowledge={
           relatedKnowledge.length > 0 ? (
             <RelatedKnowledge items={relatedKnowledge} />

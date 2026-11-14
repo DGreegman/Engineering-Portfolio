@@ -91,6 +91,7 @@ export interface CaseStudyMetadata {
   description: string;
   domain: string;
   status: WorkFrontmatter["status"];
+  projectContext: string;
   timeline?: string;
   difficulty?: WorkFrontmatter["difficulty"];
   technologies: string[];
@@ -111,6 +112,7 @@ export function getCaseStudyMetadata(
     description: fm.description,
     domain: fm.domain,
     status: fm.status,
+    projectContext: fm.projectContext,
     timeline: fm.timeline,
     difficulty: fm.difficulty,
     technologies: fm.technologies,
@@ -149,6 +151,7 @@ export function toCaseStudyEntry(
     summary: item.frontmatter.description,
     domain: item.frontmatter.domain,
     status: item.frontmatter.status,
+    projectContext: item.frontmatter.projectContext,
     publishedAt: formatDate(item.frontmatter.publishedAt),
     href: `/work/${item.slug}`,
     featured: item.frontmatter.featured,

@@ -104,7 +104,7 @@ All of `docs/86` §30's Adopt/Reject/Defer decisions stand exactly as written. R
 | `name` | `SITE_NAME` | `site.ts` | Required, available |
 | `url` | `SITE_URL` | `site.ts` | Required, available |
 | `description` | `ABOUT_HEADER_COPY.introduction.join(" ")` (or the first paragraph alone — an implementation-level wording choice, not an architecture one; either is real, unaltered prose) | `about-copy.ts` | Optional, available |
-| `jobTitle` | `ABOUT_HEADER_COPY.headline` (`"Backend Engineer & Technical Lead."`) | `about-copy.ts` | Optional, available |
+| `jobTitle` | `ABOUT_HEADER_COPY.headline` (`"Software Engineer & Technical Lead."`) | `about-copy.ts` | Optional, available |
 | `sameAs` | `[GITHUB_URL, LINKEDIN_URL]` | `site.ts` | Optional, available |
 | `image` | Absolute URL to `public/images/portrait.jpeg`, composed via `metadataBase`; real dimensions 1080×998 | Real, existing asset | Optional, available — the one adopted exception (`docs/86` §26) |
 | `email` | **Not included** | — | Available, but explicitly not exposed (below) |

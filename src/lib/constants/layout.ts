@@ -26,8 +26,8 @@
  */
 export const CONTENT_WIDTH = {
   narrow: "max-w-reading",
-  standard: "max-w-5xl",
-  wide: "max-w-7xl",
+  standard: "max-w-6xl",
+  wide: "max-w-[1400px]",
   full: "max-w-none",
 } as const;
 
@@ -50,9 +50,9 @@ export type StackGap = keyof typeof STACK_GAP;
  * fixed.
  */
 export const SECTION_SPACING = {
-  sm: "py-8 md:py-12",
-  md: "py-12 md:py-16 lg:py-20",
-  lg: "py-16 md:py-24 lg:py-32",
+  sm: "py-8 md:py-10 lg:py-12",
+  md: "py-10 md:py-14 lg:py-16",
+  lg: "py-14 md:py-20 lg:py-24",
 } as const;
 
 export type SectionSpacing = keyof typeof SECTION_SPACING;

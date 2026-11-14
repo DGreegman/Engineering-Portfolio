@@ -23,7 +23,12 @@ import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
 import { GithubIcon, LinkedinIcon } from "@/components/shared/icons";
 import { ABOUT_CONTACT_COPY } from "@/lib/constants/about-copy";
-import { CONTACT_EMAIL, GITHUB_URL, LINKEDIN_URL } from "@/lib/constants/site";
+import {
+  COMPANY_URL,
+  CONTACT_EMAIL,
+  GITHUB_URL,
+  LINKEDIN_URL,
+} from "@/lib/constants/site-identity";
 
 const contactLinkClassName =
   "inline-flex items-center gap-1.5 rounded-sm text-body text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none";
@@ -43,7 +48,7 @@ export function Contact() {
         {ABOUT_CONTACT_COPY.introduction.map((paragraph) => (
           <p
             key={paragraph}
-            className="text-body text-justify leading-relaxed text-muted-foreground"
+            className="text-body leading-relaxed text-muted-foreground"
           >
             {paragraph}
           </p>
@@ -82,6 +87,19 @@ export function Contact() {
             </a>
           </li>
         </Stack>
+        <p className="pt-3 text-small text-muted-foreground">
+          Diftrak Limited is a separate technology and cybersecurity services
+          business. Visit{" "}
+          <a
+            href={COMPANY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-4"
+          >
+            diftrak.com
+          </a>
+          .
+        </p>
       </Stack>
     </Section>
   );

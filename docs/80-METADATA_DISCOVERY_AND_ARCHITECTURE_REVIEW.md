@@ -73,7 +73,7 @@ A real file, but **not SEO-related** — a genuine naming collision worth flaggi
 export const SITE_NAME = "Gracious Obeagu";
 export const GITHUB_URL = "https://github.com/DGreegman";
 export const LINKEDIN_URL = "https://linkedin.com/in/gracious-obeagu";
-export const CONTACT_EMAIL = "graciousobeagu@gmail.com";
+export const CONTACT_EMAIL = "gracious@diftrak.com";
 export const RSS_PATH = "/rss.xml";
 export const SITE_URL = process.env.SITE_URL ?? "http://localhost:3000";
 export const FOOTER_CLOSING_MESSAGE = [...];

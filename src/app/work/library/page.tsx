@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 
 import { LibraryHeader } from "@/components/work/library-header";
 import { BrowseLenses } from "@/components/work/browse-lenses";
@@ -29,11 +30,20 @@ export const metadata: Metadata = {
     url: "/work/library",
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE.url,
+        width: SOCIAL_IMAGE.width,
+        height: SOCIAL_IMAGE.height,
+        alt: SOCIAL_IMAGE.alt,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Case Study Library",
     description,
+    images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
   },
 };
 

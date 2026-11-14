@@ -35,9 +35,10 @@ export function BrowseByTopic({ topics }: { topics: Topic[] }) {
       aria-labelledby="browse-by-topic-heading"
       spacing="md"
       width="full"
+      className="border-y border-border/70 bg-secondary/45 px-4 sm:px-6 lg:px-8"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2 id="browse-by-topic-heading" className="text-h2 text-foreground">
             {BROWSE_BY_TOPIC_COPY.title}
           </h2>

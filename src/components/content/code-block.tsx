@@ -1,22 +1,7 @@
 /**
- * CodeBlock
- *
- * Task 4.3.6's reusable code presentation component — takes plain code
- * text and renders a fully self-contained, syntax-highlighted block: any
- * future caller (a Command Block, a hardcoded example elsewhere on the
- * site) passes `code`/`language` and gets highlighting, overflow handling,
- * and a copy action for free, without separately calling
- * `lib/content/highlight.ts` itself first — that call lives *inside* this
- * component precisely so highlighting stays a one-line dependency of using
- * `CodeBlock`, not a step every caller has to remember and duplicate.
- *
- * An async Server Component: `highlightCode()` is async (Shiki's own API),
- * and doing the highlighting here — not in `mdx-components.tsx`'s `Pre`,
- * which only extracts `code`/`language` from the MDX-produced element and
- * delegates — keeps the one call site for "compile code text into
- * highlighted markup" inside the component that owns code presentation,
- * matching this task's "reuse the existing MDX rendering... do not
- * duplicate rendering logic."
+ * Renders code with syntax markup generated during `mdx:prepare`. Shiki
+ * runs on the build host; Worker requests only render the trusted markup,
+ * code text, label, and the existing copy control.
  *
  * Header row always renders, even with neither `filename` nor a resolved
  * `language` label — it's what gives `CopyButton` a fixed, predictable
@@ -37,12 +22,7 @@
  * already established for the pre-Shiki version of this component
  * (Task 4.3.4) — carried forward, not reinvented.
  *
- * `filename` is accepted and rendered today with nothing in the MDX
- * pipeline yet able to supply it (fenced code meta-string parsing isn't
- * built — this task's own "if filename support is not yet available
- * through the MDX pipeline, ensure the component architecture can support
- * it without redesign"). A future task wiring up meta-string parsing only
- * has to pass this prop; `CodeBlock` itself needs no changes.
+ * `filename` remains available for future MDX metadata support.
  *
  * No `collapsible`/`maxLines` props: explicitly out of scope for this task
  * ("do not implement... collapsible examples"), and unlike `filename` this
@@ -71,28 +51,33 @@
  * carry the same claim independently, whether the diagram beside it is
  * this component or something built later.
  */
-import { highlightCode, resolveLanguageLabel } from "@/lib/content/highlight";
 import { CopyButton } from "@/components/content/copy-button";
 
 export interface CodeBlockProps {
   code: string;
   language?: string;
+  languageLabel?: string;
+  highlightedHtml: string;
   filename?: string;
 }
 
-export async function CodeBlock({ code, language, filename }: CodeBlockProps) {
-  const html = await highlightCode(code, language);
-  const label = resolveLanguageLabel(language);
-
+export function CodeBlock({
+  code,
+  languageLabel,
+  highlightedHtml,
+  filename,
+}: CodeBlockProps) {
   return (
-    <div className="mb-6 overflow-hidden rounded-lg border border-border bg-muted/50">
+    <div className="mb-6 overflow-hidden rounded-lg border border-border bg-surface-elevated/60">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-2">
         <span className="truncate font-mono text-caption text-muted-foreground">
           {filename}
         </span>
         <div className="flex shrink-0 items-center gap-3">
-          {label && (
-            <span className="text-caption text-muted-foreground">{label}</span>
+          {languageLabel && (
+            <span className="text-caption text-muted-foreground">
+              {languageLabel}
+            </span>
           )}
           <CopyButton code={code} />
         </div>
@@ -104,7 +89,7 @@ export async function CodeBlock({ code, language, filename }: CodeBlockProps) {
           // build-time-generated HTML from this repo's own MDX content,
           // not user input, the same trust boundary `Img`'s `<img>` and
           // this file's own MDX pipeline already operate inside.
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
         />
       </pre>
     </div>

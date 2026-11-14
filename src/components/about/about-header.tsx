@@ -68,8 +68,8 @@ export function AboutHeader() {
   return (
     <Section spacing="md" width="full">
       <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between md:gap-10">
-        <Stack gap="lg" className="max-w-reading flex-1">
-          <p className="font-mono text-caption text-muted-foreground">
+        <Stack gap="lg" className="max-w-4xl flex-1">
+          <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-brand-accent">
             {ABOUT_HEADER_COPY.eyebrow}
           </p>
 
@@ -81,7 +81,7 @@ export function AboutHeader() {
             {ABOUT_HEADER_COPY.introduction.map((paragraph) => (
               <p
                 key={paragraph}
-                className="text-body text-justify leading-relaxed text-muted-foreground"
+                className="text-body leading-relaxed text-muted-foreground"
               >
                 {paragraph}
               </p>

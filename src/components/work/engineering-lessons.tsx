@@ -56,7 +56,7 @@ import type { EngineeringLessonEntry } from "@/lib/constants/placeholder-work-la
 function LessonRow({ entry }: { entry: EngineeringLessonEntry }) {
   return (
     <li className="py-6">
-      <p className="font-mono text-caption text-muted-foreground/60">
+      <p className="font-mono text-caption text-muted-foreground">
         {entry.sourceProject}
       </p>
       <p className="mt-1 text-body leading-relaxed text-foreground">

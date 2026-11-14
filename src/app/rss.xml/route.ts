@@ -23,6 +23,8 @@
 import { SITE_URL } from "@/lib/constants/site";
 import { buildRssXml, getFeedItems } from "@/lib/content/rss";
 
+export const dynamic = "force-static";
+
 export async function GET() {
   const items = getFeedItems(SITE_URL);
   const xml = buildRssXml(items, SITE_URL);

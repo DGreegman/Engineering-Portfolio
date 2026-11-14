@@ -35,6 +35,7 @@ import Link from "next/link";
 
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
+import { ProjectDiagram } from "@/components/work/project-diagram";
 import { FEATURED_CASE_STUDIES_COPY } from "@/lib/constants/work-copy";
 import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
 
@@ -47,31 +48,63 @@ import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
 function CaseFile({
   entry,
   caseNumber,
+  featured = false,
 }: {
   entry: CaseStudyEntry;
   caseNumber: number;
+  featured?: boolean;
 }) {
   const citation = entry.publishedAt
     ? `${entry.domain} • ${entry.status} • ${entry.publishedAt}`
     : `${entry.domain} • ${entry.status}`;
+  const compactVaultPay = featured && entry.href === "/work/vaultpay";
 
   return (
-    <li className="relative -mx-4 rounded-md px-4 py-8 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground">
-        CASE {String(caseNumber).padStart(3, "0")}
-      </p>
-      <h3 className="mt-1 text-h4 text-foreground">
-        <Link
-          href={entry.href}
-          className="after:absolute after:inset-0 focus:outline-none"
+    <li
+      className={
+        featured
+          ? `relative mb-6 rounded-xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 transition-colors hover:border-brand-accent/40 focus-within:ring-2 focus-within:ring-ring sm:p-9 lg:col-span-2 ${compactVaultPay ? "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] lg:items-center lg:gap-8" : ""}`
+          : "relative border-t border-border px-6 py-6 transition-colors hover:bg-secondary/60 focus-within:bg-secondary/60 focus-within:ring-2 focus-within:ring-ring sm:px-9"
+      }
+    >
+      <div className="min-w-0">
+        <p className="font-mono text-caption font-medium uppercase tracking-[0.1em] text-brand-accent">
+          CASE {String(caseNumber).padStart(3, "0")}
+        </p>
+        <h3
+          className={
+            featured
+              ? "mt-2 max-w-[30ch] text-h2 text-foreground"
+              : "mt-2 text-h4 text-foreground"
+          }
         >
-          {entry.title}
-        </Link>
-      </h3>
-      <Stack gap="xs" className="mt-2">
-        <p className="text-small text-muted-foreground">{entry.summary}</p>
-        <p className="text-caption text-muted-foreground/70">{citation}</p>
-      </Stack>
+          <Link
+            href={entry.href}
+            className="after:absolute after:inset-0 focus:outline-none"
+          >
+            {entry.title}
+          </Link>
+        </h3>
+        <Stack gap="xs" className="mt-2">
+          <p
+            className={
+              featured
+                ? "max-w-[72ch] text-body text-muted-foreground"
+                : "max-w-[72ch] text-small text-muted-foreground"
+            }
+          >
+            {entry.summary}
+          </p>
+          <p className="pt-1 text-caption text-muted-foreground">{citation}</p>
+          <p className="text-small text-foreground/85">
+            {entry.projectContext}
+          </p>
+        </Stack>
+      </div>
+      <ProjectDiagram
+        href={entry.href}
+        className={compactVaultPay ? "lg:mt-0" : undefined}
+      />
     </li>
   );
 }
@@ -117,12 +150,13 @@ export function FeaturedCaseStudies({
             <h3 className="text-h4 text-foreground">
               {FEATURED_CASE_STUDIES_COPY.sectionLabel}
             </h3>
-            <ol className="max-w-reading divide-y divide-border">
+            <ol className="grid gap-x-10 lg:grid-cols-2">
               {caseStudies.map((entry, index) => (
                 <CaseFile
                   key={entry.title}
                   entry={entry}
                   caseNumber={index + 1}
+                  featured={index === 0}
                 />
               ))}
             </ol>

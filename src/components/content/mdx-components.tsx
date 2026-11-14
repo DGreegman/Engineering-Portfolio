@@ -62,22 +62,10 @@
  * `ArticleBody` resets the very first rendered element's top margin so the
  * body doesn't double up with `DocumentContainer`'s own top padding.
  *
- * Code fences (Task 4.3.6): `pre` no longer renders a `<pre>` itself — it
- * extracts the fenced block's raw code text and language from its own
- * `children` (the still-unrendered `<code className="language-x">` MDX
- * produced, read straight off `.props` before React ever renders it, since
- * a JSX element passed as a prop is just a plain `{type, props}` object
- * until something renders it) and delegates entirely to `CodeBlock`
- * (`components/content/code-block.tsx`) — highlighting, the header row,
- * overflow, and the copy action all live there, not here. `code` (this
- * file's inline override) is left with only the inline case: with `pre`
- * intercepting every fenced block's `children` before React would ever
- * invoke `code` for it, the fenced branch Task 4.3.4 gave `code` had
- * become unreachable, so it was removed rather than left as dead code with
- * a stale comment describing behavior that no longer executes. `code` is
- * still the tag MDX renders for genuinely inline code (never wrapped in a
- * `pre`), so this file still needs an override for it — just a narrower
- * one now.
+ * Code fences are replaced during `mdx:prepare` with a
+ * `PreHighlightedCode` component carrying Shiki's build-time HTML and the
+ * source text used by the existing copy control. Inline `code` remains a
+ * normal styled Markdown override.
  *
  * `hr` is a plain semantic `<hr>` styled to the same subtle `border-border`
  * token used everywhere else, not the `ui/separator.tsx` component — that
@@ -117,7 +105,10 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { CodeBlock } from "@/components/content/code-block";
+import {
+  CodeBlock,
+  type CodeBlockProps,
+} from "@/components/content/code-block";
 import { Callout } from "@/components/content/callout";
 import type { Heading } from "@/types/content";
 
@@ -183,30 +174,8 @@ function Code({ className, ...props }: React.ComponentProps<"code">) {
   );
 }
 
-function Pre({ children }: React.ComponentProps<"pre">) {
-  // MDX compiles a fenced block to `<pre><code className="language-x">
-  // {text}</code></pre>` — `children` here is that `<code>` element,
-  // unevaluated (JSX doesn't invoke a component until React renders it),
-  // so its own `props` can be read directly instead of letting it render
-  // and trying to recover the source text from the result.
-  const codeElement = children as React.ReactElement<{
-    className?: string;
-    children?: React.ReactNode;
-  }>;
-
-  const rawChildren = codeElement?.props?.children;
-  const code =
-    typeof rawChildren === "string" ? rawChildren : String(rawChildren ?? "");
-
-  // Fenced blocks get a `language-x` class from remark; a bare ``` ``` ```
-  // fence (no info string) has no className at all — `language` stays
-  // `undefined` in that case, which is exactly what `CodeBlock` needs to
-  // know not to show a label ("do not infer programming languages").
-  const language = /language-(\S+)/.exec(
-    codeElement?.props?.className ?? "",
-  )?.[1];
-
-  return <CodeBlock code={code} language={language} />;
+function PreHighlightedCode(props: CodeBlockProps) {
+  return <CodeBlock {...props} />;
 }
 
 function Blockquote({
@@ -367,7 +336,6 @@ export function getMdxComponents(headings: Heading[]) {
     strong: Strong,
     em: Em,
     code: Code,
-    pre: Pre,
     blockquote: Blockquote,
     table: Table,
     th: Th,
@@ -376,5 +344,6 @@ export function getMdxComponents(headings: Heading[]) {
     a: A,
     hr: Hr,
     Callout,
+    PreHighlightedCode,
   };
 }

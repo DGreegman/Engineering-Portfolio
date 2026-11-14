@@ -3,14 +3,14 @@
  *
  * The homepage's opening experience — not a marketing hero. Modeled on the
  * first screen of a well-maintained repository's README: a filename tab,
- * one heading, two short paragraphs of reasoning, a single link forward,
- * and a quiet terminal line. Alongside it, `WorkspaceSnapshot` renders as a
+ * one heading, short engineering positioning, two clear actions, and a
+ * quiet terminal line. Alongside it, `WorkspaceSnapshot` renders as a
  * secondary column — supporting context, never competing with the README
  * for attention (docs/13-HOMEPAGE_EXPERIENCE.md's "README Introduction",
  * docs/14-HOMEPAGE_COPY.md's "Hero" and "Workspace Snapshot"). Copy for
  * both is reproduced verbatim from lib/constants/homepage-copy.ts.
  *
- * The two-column grid only applies at `lg:` — below that, the snapshot
+ * The two-column grid only applies at `xl:` — below that, the snapshot
  * simply flows after the README content in normal document order, which is
  * also its accessibility/reading order at every breakpoint: the README is
  * the primary content and always reaches assistive tech first.
@@ -36,11 +36,8 @@ import { HERO_COPY } from "@/lib/constants/homepage-copy";
  */
 function TerminalSnippet() {
   return (
-    // max-w-xs (not w-fit) so this matches the CTA button's width below —
-    // both are direct children of the same flex-col Stack, so both stretch
-    // to fill this cap identically rather than each hugging its own
-    // content width.
-    <pre className="max-w-xs overflow-x-auto rounded-lg border border-border bg-muted/50 px-4 py-3">
+    // Keep the sample narrow so it reads as a supporting detail.
+    <pre className="max-w-xs overflow-x-auto rounded-lg border border-border bg-surface-elevated/60 px-4 py-3">
       <code>
         <span className="text-muted-foreground">$ </span>
         {HERO_COPY.terminal.command}
@@ -54,28 +51,26 @@ function TerminalSnippet() {
 export function ReadmeHero() {
   return (
     // width="full": WorkspaceLayout now wraps every page's sidebar/main
-    // row in one shared PageContainer (max-w-7xl, same px-4/6/8 gutter
+    // row in one shared PageContainer (max-width 1400px, same responsive gutter
     // Header/Footer use) so the hero's left edge lines up with the
     // wordmark and footer content above/below it — an inner "wide"
     // Container here would double that gutter instead. On sidebar-less
     // routes like this one the empty <aside> collapses to zero width
     // (lg:empty:hidden), so the shared container spans the full viewport
     // exactly as this section's own "wide" Container used to. The text
-    // itself is still capped at max-w-reading below so lines don't
-    // stretch to the full measure.
-    //
-    // The snapshot's track (24rem) is deliberately narrower than the
-    // README's 1fr track, not an even split — the README stays the
-    // visually larger, primary column; the snapshot is sized for a
-    // presence that reads as "companion," not "equal."
-    <Section spacing="md" width="full">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-        <Stack gap="lg" className="max-w-reading">
-          <p className="font-mono text-caption text-muted-foreground">
+    // the hero uses a fluid, wide text column while paragraph line lengths
+    // remain controlled by the copy itself. The snapshot is the supporting
+    // right-hand column in a slightly asymmetric editorial split.
+    <Section spacing="md" width="full" className="relative xl:py-20">
+      <div className="grid gap-10 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)] xl:items-center xl:gap-16">
+        <Stack gap="md" className="max-w-[52rem] xl:gap-8">
+          <p className="font-mono text-caption font-medium uppercase tracking-[0.14em] text-brand-accent">
             {HERO_COPY.readmeLabel}
           </p>
 
-          <h1 className="text-display text-foreground">{HERO_COPY.headline}</h1>
+          <h1 className="max-w-[14ch] text-display text-foreground">
+            {HERO_COPY.headline}
+          </h1>
 
           <Stack gap="sm" as="div">
             {HERO_COPY.supportingCopy.map((paragraph) => (
@@ -85,26 +80,35 @@ export function ReadmeHero() {
             ))}
           </Stack>
 
-          {/* max-w-xs matches TerminalSnippet's cap below, so the two
-              stretch to the same width instead of each hugging its own
-              content. */}
-          <div className="max-w-xs">
+          <div className="flex max-w-xl flex-col gap-3 sm:flex-row">
             {/* This renders an <a> (next/link), not a <button> — tell Base
                 UI so it stops assuming native-button semantics on an
                 element that doesn't have them. */}
             <Button
               nativeButton={false}
+              size="lg"
               render={<Link href={HERO_COPY.primaryCta.href} />}
-              className="w-full"
+              className="w-full sm:w-auto"
             >
               {HERO_COPY.primaryCta.label}
+            </Button>
+            <Button
+              nativeButton={false}
+              variant="outline"
+              size="lg"
+              render={<Link href={HERO_COPY.secondaryCta.href} />}
+              className="w-full sm:w-auto"
+            >
+              {HERO_COPY.secondaryCta.label}
             </Button>
           </div>
 
           <TerminalSnippet />
         </Stack>
 
-        <WorkspaceSnapshot />
+        <div className="xl:pl-2">
+          <WorkspaceSnapshot />
+        </div>
       </div>
     </Section>
   );

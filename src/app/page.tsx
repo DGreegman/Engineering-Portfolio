@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 
 import { ReadmeHero } from "@/components/home/readme-hero";
-import { CurrentFocus } from "@/components/home/current-focus";
 import { HowIThink } from "@/components/home/how-i-think";
 import { EngineeringNotebook } from "@/components/home/engineering-notebook";
 import { EngineeringCaseStudies } from "@/components/home/engineering-case-studies";
@@ -115,11 +115,20 @@ export const metadata: Metadata = {
     url: "/",
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE.url,
+        width: SOCIAL_IMAGE.width,
+        height: SOCIAL_IMAGE.height,
+        alt: SOCIAL_IMAGE.alt,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title,
     description,
+    images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
   },
 };
 
@@ -184,10 +193,9 @@ export default function Home() {
         }}
       />
       <ReadmeHero />
-      <CurrentFocus />
+      <EngineeringCaseStudies caseStudies={featuredCaseStudies} />
       <HowIThink />
       <EngineeringNotebook articles={featuredArticles.map(toNotebookArticle)} />
-      <EngineeringCaseStudies caseStudies={featuredCaseStudies} />
       <EngineeringLog entries={logEntries.map(toEngineeringLogEntry)} />
       <BeyondTheCode />
     </>

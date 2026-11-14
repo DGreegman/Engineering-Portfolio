@@ -36,7 +36,7 @@ import type { SearchResults as SearchResultsData } from "@/lib/content/search";
 function SearchResultRow({ item }: { item: ResolvedArticleSummary }) {
   return (
     <li className="relative -mx-4 rounded-md px-4 py-6 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground/60">
+      <p className="font-mono text-caption text-muted-foreground">
         {item.publishedAt}
       </p>
       <h3 className="mt-1 text-h4 text-foreground">

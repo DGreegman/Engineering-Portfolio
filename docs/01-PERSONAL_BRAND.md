@@ -36,7 +36,7 @@ Long-term, evolve into an engineer who bridges Backend Engineering, Distributed 
 
 # Positioning Statement
 
-Gracious Obeagu is a Backend Engineer and Technical Lead specializing in secure backend systems, developer tooling, API design, distributed systems, and engineering best practices.
+Gracious Obeagu is a Software Engineer and Technical Lead specializing in secure backend systems, developer tooling, API design, distributed systems, and engineering best practices.
 
 His long-term career direction is to become a security-focused engineer who designs resilient systems, secures modern cloud infrastructure, and embeds security into every stage of software development.
 
@@ -58,7 +58,7 @@ Visitors should leave believing:
 
 Primary Identity
 
-• Backend Engineer
+• Software Engineer
 
 Secondary Identity
 
@@ -389,7 +389,7 @@ Another engineer should learn something useful after reading a project case stud
 
 This portfolio is not a static website.
 
-It is a living engineering hub that documents the journey from Backend Engineer to Security-Focused Software Architect.
+It is a living engineering hub that documents the journey from Software Engineer to Security-Focused Software Architect.
 
 Over time it will become the home for:
 

@@ -52,7 +52,7 @@ function DomainTile({ group }: { group: CaseStudyDomainGroup }) {
       <Stack gap="xs">
         <h3 className="text-h4 text-foreground">{group.domain}</h3>
         {group.caseStudies.length > 0 && (
-          <p className="pt-1 text-caption text-muted-foreground/70">
+          <p className="pt-1 text-caption text-muted-foreground">
             {group.caseStudies.map((entry, index) => (
               <span key={entry.href}>
                 {index > 0 && " · "}

@@ -26,8 +26,8 @@ export function WorkHero() {
     // width="full" — WorkspaceLayout supplies the shared PageContainer for
     // every page now; see readme-hero.tsx's comment for why.
     <Section spacing="md" width="full">
-      <Stack gap="lg" className="max-w-reading">
-        <p className="font-mono text-caption text-muted-foreground">
+      <Stack gap="lg" className="max-w-4xl">
+        <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-brand-accent">
           {WORK_HERO_COPY.eyebrow}
         </p>
 

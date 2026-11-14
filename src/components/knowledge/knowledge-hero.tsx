@@ -30,8 +30,8 @@ export function KnowledgeHero() {
     // Container — an inner "wide" Container here would double the gutter
     // and misalign this content from Header's brand again.
     <Section spacing="md" width="full">
-      <Stack gap="lg" className="max-w-reading">
-        <p className="font-mono text-caption text-muted-foreground">
+      <Stack gap="lg" className="max-w-4xl">
+        <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-brand-accent">
           {KNOWLEDGE_HERO_COPY.eyebrow}
         </p>
 

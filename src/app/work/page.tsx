@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 
 import { WorkHero } from "@/components/work/work-hero";
 import { EngineeringPhilosophy } from "@/components/work/engineering-philosophy";
@@ -36,11 +37,20 @@ export const metadata: Metadata = {
     url: "/work",
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE.url,
+        width: SOCIAL_IMAGE.width,
+        height: SOCIAL_IMAGE.height,
+        alt: SOCIAL_IMAGE.alt,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Work",
     description,
+    images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
   },
 };
 

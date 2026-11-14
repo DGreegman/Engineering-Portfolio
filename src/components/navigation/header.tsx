@@ -40,21 +40,21 @@ import { MobileNavigation } from "@/components/navigation/mobile-navigation";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { GithubIcon } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
-import { GITHUB_URL } from "@/lib/constants/site";
+import { GITHUB_URL } from "@/lib/constants/site-identity";
 
 export function Header() {
   return (
     <header
       data-slot="workspace-header"
-      className="sticky top-0 z-40 border-b border-border bg-background"
+      className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/90"
     >
       <PageContainer>
-        <div className="flex h-14 items-center justify-between gap-4">
+        <div className="flex h-16 items-center justify-between gap-3 sm:gap-5">
           {/* Understated by design: the workspace's owner, not its focal
               point — same size/weight as the nav links beside it. */}
           <Link
             href="/"
-            className="rounded-sm text-sm font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
+            className="shrink-0 rounded-sm text-base font-semibold tracking-tight text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
           >
             Gracious Obeagu
           </Link>
@@ -62,10 +62,7 @@ export function Header() {
           <PrimaryNavigation className="hidden lg:block" />
 
           <div className="flex items-center gap-1">
-            {/* Activated for Task 6.4 (docs/42 WI-9) — same render={<a/>}
-                shape the GitHub icon button below already uses, not a new
-                interaction pattern. RSS stays disabled/"(coming soon)"
-                until its own task activates it. */}
+            {/* Search and the working feed use the same accessible icon link pattern. */}
             <Button
               variant="ghost"
               size="icon"
@@ -77,15 +74,18 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              disabled
-              aria-label="RSS feed (coming soon)"
-              title="RSS feed (coming soon)"
+              className="hidden md:inline-flex"
+              nativeButton={false}
+              render={
+                <a href="/rss.xml" aria-label="RSS feed" title="RSS feed" />
+              }
             >
               <Rss />
             </Button>
             <Button
               variant="ghost"
               size="icon"
+              className="hidden md:inline-flex"
               // This renders an <a>, not a <button> — tell Base UI so it
               // stops assuming native-button semantics on an element that
               // doesn't have them (see Task 3.1's Base UI console warning).
