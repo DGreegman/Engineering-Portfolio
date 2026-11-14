@@ -46,7 +46,7 @@ jobs:
         # Fails if pnpm-lock.yaml is out of sync with package.json, instead
         # of silently updating it in CI.
 
-      - name: Type check
+      - name: Generate route types and type check
         run: pnpm run typecheck
 
       - name: Lint

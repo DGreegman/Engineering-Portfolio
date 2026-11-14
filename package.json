@@ -16,7 +16,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "pretypecheck": "pnpm run mdx:prepare",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky"
