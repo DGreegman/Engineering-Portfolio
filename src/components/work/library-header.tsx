@@ -35,7 +35,7 @@ export function LibraryHeader({ count }: { count: number }) {
     // width="full" — WorkspaceLayout supplies the shared PageContainer for
     // every page now; see work-hero.tsx's comment for why.
     <Section spacing="md" width="full">
-      <Stack gap="lg" className="max-w-reading">
+      <Stack gap="lg" className="max-w-4xl">
         <p className="font-mono text-caption text-muted-foreground">
           {LIBRARY_HEADER_COPY.eyebrow}
         </p>

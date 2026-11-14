@@ -43,7 +43,7 @@ export function TopicTile({
         <h3 className="text-h4 text-foreground">{topic.title}</h3>
         <p className="text-small text-muted-foreground">{topic.description}</p>
         {typeof topic.articleCount === "number" && (
-          <p className="text-caption text-muted-foreground/70">
+          <p className="text-caption text-muted-foreground">
             {topic.articleCount}{" "}
             {topic.articleCount === 1 ? "article" : "articles"}
           </p>

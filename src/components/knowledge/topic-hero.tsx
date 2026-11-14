@@ -74,7 +74,7 @@ export function TopicHero({
 
   return (
     <Section spacing="lg" width="full">
-      <Stack gap="lg" className="max-w-reading">
+      <Stack gap="lg" className="max-w-4xl">
         <h1 className="text-h1 text-foreground">{title}</h1>
 
         <Stack gap="sm">

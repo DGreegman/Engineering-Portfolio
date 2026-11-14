@@ -36,7 +36,7 @@ import {
   GITHUB_URL,
   LINKEDIN_URL,
   SITE_NAME,
-} from "@/lib/constants/site";
+} from "@/lib/constants/site-identity";
 import {
   WORKSPACE_METADATA,
   type WorkspaceMetadataItem,
@@ -119,12 +119,10 @@ export function FooterConnect() {
           </a>
         </li>
         <li>
-          {/* Not a link — /rss.xml isn't live yet (Milestone 6). Plain,
-              honestly non-interactive text rather than a dead link. */}
-          <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/60">
+          <a href="/rss.xml" className={footerLinkClassName}>
             <Rss className="size-4" />
-            RSS <span className="text-xs">(coming soon)</span>
-          </span>
+            RSS feed
+          </a>
         </li>
       </Stack>
     </Stack>
@@ -167,7 +165,7 @@ export function Footer() {
           hand-typed value, so the footer's breathing room keeps scaling at
           lg: the same way the rest of the app's rhythm scale does. */}
       <PageContainer className={SECTION_SPACING.md}>
-        <Stack gap="xl">
+        <Stack gap="lg">
           <FooterClosingMessage />
           <Separator />
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">

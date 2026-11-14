@@ -106,7 +106,7 @@ export function DocumentHeader({
   }
 
   return (
-    <Stack gap="lg" className="max-w-reading">
+    <Stack gap="lg" className="max-w-4xl">
       <h1 className="text-h1 text-foreground">{title}</h1>
 
       <p className="text-body text-muted-foreground">{description}</p>

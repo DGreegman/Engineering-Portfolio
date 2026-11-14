@@ -48,6 +48,7 @@
  * carry no theme metadata of their own.
  */
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 import { notFound } from "next/navigation";
 
 import { DocumentLayout } from "@/components/content/document-layout";
@@ -56,6 +57,7 @@ import { ArticleBody } from "@/components/content/article-body";
 import { TableOfContents } from "@/components/content/table-of-contents";
 import { PreviousNext } from "@/components/content/previous-next";
 import { ProjectHeader } from "@/components/work/project-header";
+import { ProjectDiagram } from "@/components/work/project-diagram";
 import { RelatedKnowledge } from "@/components/work/related-knowledge";
 import { RelatedEngineeringLogs } from "@/components/work/related-engineering-logs";
 import { RelatedCaseStudies } from "@/components/work/related-case-studies";
@@ -81,6 +83,8 @@ import { JsonLd } from "@/components/content/json-ld";
 export function generateStaticParams() {
   return getCaseStudySlugs().map((slug) => ({ slug }));
 }
+
+export const dynamicParams = false;
 
 export async function generateMetadata({
   params,
@@ -117,11 +121,22 @@ export async function generateMetadata({
       modifiedTime: frontmatter.updatedAt?.toISOString(),
       tags: frontmatter.tags,
       section: frontmatter.domain,
+
+      images: [
+        {
+          url: SOCIAL_IMAGE.url,
+          width: SOCIAL_IMAGE.width,
+          height: SOCIAL_IMAGE.height,
+          alt: SOCIAL_IMAGE.alt,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: frontmatter.description,
+
+      images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
     },
   };
 }
@@ -224,18 +239,22 @@ export default async function CaseStudyPage({
           />
         }
         header={
-          <ProjectHeader
-            title={metadata.title}
-            description={metadata.description}
-            domain={metadata.domain}
-            status={metadata.status}
-            timeline={metadata.timeline}
-            difficulty={metadata.difficulty}
-            technologies={metadata.technologies}
-          />
+          <>
+            <ProjectHeader
+              title={metadata.title}
+              description={metadata.description}
+              domain={metadata.domain}
+              status={metadata.status}
+              projectContext={metadata.projectContext}
+              timeline={metadata.timeline}
+              difficulty={metadata.difficulty}
+              technologies={metadata.technologies}
+            />
+            <ProjectDiagram href={`/work/${slug}`} />
+          </>
         }
         tableOfContents={<TableOfContents headings={headings} />}
-        body={<ArticleBody source={caseStudy.body} headings={headings} />}
+        body={<ArticleBody collection="work" slug={slug} headings={headings} />}
         relatedKnowledge={
           // Task 5.7 RC refinement #2: pass no element at all — not an
           // element that would itself render `null` — when there's nothing

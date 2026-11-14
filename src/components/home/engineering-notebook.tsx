@@ -18,10 +18,9 @@
  * `ENGINEERING_NOTEBOOK_COPY.emptyState` instead of the grid, which is
  * genuine doc-14 copy for exactly that real future case, not a stand-in.
  *
- * Grid is `grid-cols-1 lg:grid-cols-3` — no intermediate 2-column step —
- * so with exactly three entries every state is a complete, balanced row
- * (a 2-up grid would orphan the third card on its own row). Tablet gets
- * the same clean single-column stack as mobile.
+ * Entries use numbered editorial rows with topic and reading metadata in
+ * one column and the article summary in another on wide screens. This
+ * creates a browsing rhythm distinct from the featured work panel above.
  *
  * A Server Component: static content, no interactivity.
  */
@@ -29,58 +28,43 @@ import Link from "next/link";
 
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ENGINEERING_NOTEBOOK_COPY } from "@/lib/constants/homepage-copy";
 import type { NotebookArticle } from "@/lib/constants/placeholder-knowledge";
 
 /**
- * One entry on the shelf. Title leads — the strongest visual element, per
- * review feedback §2 — followed by the summary (written as a question or
- * trade-off, not a description, so it earns the read rather than
- * summarizing it away). Topic, reading time, and publication date collapse
- * into a single quiet citation line beneath, `·`-separated at a reduced
- * `/70` opacity — never separate badges/pills (review feedback §3): this
- * should read like the line under an academic paper's title, not
- * marketing metadata.
- *
- * The whole card is the click target, not just the title (latest review
- * feedback), via the "stretched link" pattern: the title is the one real
- * `<Link>` — so it's still the single accessible/keyboard-reachable
- * element, correct DOM semantics, no nested-interactive-element problems —
- * and `after:absolute after:inset-0` extends its *hit area* to cover the
- * whole `relative`-positioned `Card`. Hover gets the same subtle
- * scale+ring treatment already established for Current Focus's cards
- * (`motion-safe`-gated); keyboard focus gets the site's standard strong
- * `ring-2 ring-ring` indicator (the same token Header/Button/nav links
- * use, already verified for WCAG contrast — see globals.css's `--ring`
- * comment) rather than the subtle hover ring, since "subtle" and "clear"
- * are two different asks. The link's own native focus outline is removed
- * in favor of that card-level indicator, so keyboard users see the whole
- * clickable region highlighted, not just the title text.
+ * One numbered article row. The stretched link gives the complete row a
+ * generous target while preserving one native link and one tab stop.
  */
-function NotebookEntry({ article }: { article: NotebookArticle }) {
+function NotebookEntry({
+  article,
+  index,
+}: {
+  article: NotebookArticle;
+  index: number;
+}) {
   return (
-    <Card className="relative h-full transition-[transform,box-shadow] duration-150 ease-out hover:ring-foreground/20 focus-within:ring-2 focus-within:ring-ring motion-safe:hover:scale-[1.015] motion-safe:focus-within:scale-[1.015]">
-      <CardHeader>
-        <h4 className="text-h4 text-foreground">
+    <li className="relative grid gap-3 border-t border-border py-6 transition-colors hover:bg-secondary/35 focus-within:bg-secondary/35 focus-within:ring-2 focus-within:ring-ring lg:grid-cols-[3.5rem_minmax(0,1fr)_minmax(16rem,0.8fr)] lg:gap-6 lg:py-7">
+      <p className="font-mono text-caption text-brand-accent">
+        {String(index + 1).padStart(2, "0")}
+      </p>
+      <div>
+        <h3 className="text-h4 text-foreground">
           <Link
             href={article.href}
             className="after:absolute after:inset-0 focus:outline-none"
           >
             {article.title}
           </Link>
-        </h4>
-      </CardHeader>
-      <CardContent>
-        <Stack gap="xs">
-          <p className="text-small text-muted-foreground">{article.summary}</p>
-          <p className="text-caption text-muted-foreground/70">
-            {article.topic} · {article.readingTime} · {article.publishedAt}
-          </p>
-        </Stack>
-      </CardContent>
-    </Card>
+        </h3>
+        <p className="mt-2 text-small text-muted-foreground">
+          {article.topic} · {article.readingTime} · {article.publishedAt}
+        </p>
+      </div>
+      <p className="text-small text-muted-foreground lg:pl-2">
+        {article.summary}
+      </p>
+    </li>
   );
 }
 
@@ -119,11 +103,13 @@ export function EngineeringNotebook({
               ))}
             </Stack>
           ) : (
-            <ul className="grid gap-6 lg:grid-cols-3">
-              {articles.map((article) => (
-                <li key={article.title}>
-                  <NotebookEntry article={article} />
-                </li>
+            <ul className="border-b border-border">
+              {articles.map((article, index) => (
+                <NotebookEntry
+                  key={article.title}
+                  article={article}
+                  index={index}
+                />
               ))}
             </ul>
           )}

@@ -21,6 +21,9 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    env:
+      SITE_URL: https://gracious.diftrak.com
+      SITE_INDEXING_ENABLED: "false"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -53,6 +56,6 @@ jobs:
         run: pnpm run format:check
 
       - name: Build
-        run: pnpm run build
-        # Validates the production build succeeds. This is quality
-        # assurance only — no deployment happens here.
+        run: pnpm run build --webpack
+        # Use the Webpack build mode validated for the static export. This is
+        # quality assurance only — no deployment or indexing happens here.

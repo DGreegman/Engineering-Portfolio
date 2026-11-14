@@ -92,7 +92,7 @@ Real, directly-verified evidence for a `Person` entity — every value traced to
 |---|---|---|
 | `name` | `"Gracious Obeagu"` | `SITE_NAME` |
 | `url` | `SITE_URL` | Existing constant |
-| `jobTitle` | `"Backend Engineer & Technical Lead"` | `ABOUT_HEADER_COPY.headline`, rendered verbatim on `/about` |
+| `jobTitle` | `"Software Engineer & Technical Lead"` | `ABOUT_HEADER_COPY.headline`, rendered verbatim on `/about` |
 | `description` | The real `/about` introduction paragraphs | `ABOUT_HEADER_COPY.introduction` |
 | `email` | `CONTACT_EMAIL` | Already publicly rendered as a `mailto:` link (Footer, `/about`) |
 | `sameAs` | `[GITHUB_URL, LINKEDIN_URL]` | Both real, both already rendered as real `<a>` links |

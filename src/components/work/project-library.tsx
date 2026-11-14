@@ -47,7 +47,7 @@ import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
 function LibraryRow({ entry }: { entry: CaseStudyEntry }) {
   return (
     <li className="relative -mx-4 rounded-md px-4 py-4 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground/60">
+      <p className="font-mono text-caption text-muted-foreground">
         {entry.domain} · {entry.status}
       </p>
       <h4 className="mt-1 text-body font-normal text-foreground">
@@ -58,6 +58,9 @@ function LibraryRow({ entry }: { entry: CaseStudyEntry }) {
           {entry.title}
         </Link>
       </h4>
+      <p className="mt-1 text-caption text-muted-foreground">
+        {entry.projectContext}
+      </p>
     </li>
   );
 }
@@ -78,7 +81,7 @@ export function ProjectLibrary({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2 id="project-library-heading" className="text-h2 text-foreground">
             {PROJECT_LIBRARY_COPY.title}
           </h2>
@@ -103,12 +106,12 @@ export function ProjectLibrary({
               <p className="text-small text-muted-foreground">
                 {PROJECT_LIBRARY_COPY.scaleLabel(caseStudies.length)}
               </p>
-              <p className="text-caption text-muted-foreground/70">
+              <p className="text-caption text-muted-foreground">
                 {PROJECT_LIBRARY_COPY.shapeLabel} {domains.join(" · ")}
               </p>
             </Stack>
 
-            <ol className="max-w-reading divide-y divide-border/50">
+            <ol className="max-w-5xl divide-y divide-border/70">
               {caseStudies.map((entry) => (
                 <LibraryRow key={entry.href} entry={entry} />
               ))}

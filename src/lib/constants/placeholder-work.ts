@@ -69,14 +69,10 @@
  * `featured` is optional and editorial, set by hand per §3's "editorial,
  * never mechanical" selection criteria (architectural complexity,
  * interesting trade-offs, documentation quality) — not derived from
- * `status` or list position. VaultPay and GoHunt are marked featured; Haya
- * and Cookeaze are deliberately left unfeatured by this task even though
- * both now have real, template-complete case studies — per this same
- * section's "editorial, never mechanical" rule, whether either belongs in
- * the small, curated Featured set is a judgment call for the site owner to
- * make deliberately, not one this refinement pass should make on their
- * behalf merely because a case study now exists. Both remain fully real,
- * fully linked entries in the Project Library either way.
+ * `status` or list position. VaultPay and GoHunt are featured; Haya is
+ * explicitly added to the featured set at the portfolio owner's request
+ * for the visual refinement. Cookeaze remains unfeatured and available in
+ * the Project Library.
  */
 
 export interface CaseStudyEntry {
@@ -84,6 +80,7 @@ export interface CaseStudyEntry {
   summary: string;
   domain: string;
   status: "Completed" | "In Progress";
+  projectContext: string;
   publishedAt?: string;
   href: string;
   /** Editorial pick for Featured Case Studies. See docstring above. */
@@ -97,6 +94,8 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
       "Designing a wallet infrastructure that remains correct under concurrent transactions.",
     domain: "Backend Infrastructure",
     status: "In Progress",
+    projectContext:
+      "Fictional fintech — mocked integrations; no real money or live payment rails.",
     publishedAt: "Aug 2026",
     href: "/work/vaultpay",
     featured: true,
@@ -107,6 +106,7 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
       "Matching engineers to opportunities using retrieval, scoring, and AI-assisted evaluation.",
     domain: "AI Systems",
     status: "Completed",
+    projectContext: "Personal tool and learning project.",
     publishedAt: "Jul 2026",
     href: "/work/gohunt",
     featured: true,
@@ -117,8 +117,11 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
       "Building the concurrency control and access-control model behind an AI-powered UX analysis platform.",
     domain: "Platform Engineering",
     status: "Completed",
+    projectContext:
+      "Platform case study; deployment context not stated in the write-up.",
     publishedAt: "Oct 2025",
     href: "/work/haya",
+    featured: true,
   },
   {
     title: "Cookeaze",
@@ -126,6 +129,7 @@ export const PLACEHOLDER_WORK: CaseStudyEntry[] = [
       "Reconciling a wallet ledger once a payment webhook alone turned out not to be a reliable source of truth.",
     domain: "Backend Infrastructure",
     status: "Completed",
+    projectContext: "Production system — payment reconciliation.",
     publishedAt: "Dec 2024",
     href: "/work/cookeaze",
   },

@@ -20,31 +20,36 @@ README.md
 
 ## Headline
 
-An engineering workspace for curious developers.
+Software Engineer & Technical Lead.
 
 ---
 
 ## Supporting Copy
 
-I build reliable backend systems, explore software architecture, and document the lessons, trade-offs, and engineering decisions behind the code.
+I build backend systems and APIs, with a focus on reliability, security, and the trade-offs behind production applications.
 
-This workspace is where I share what I learn, how I solve problems, and the thinking behind the systems I build. Whether you're here to learn something new or simply curious about how I approach engineering, I hope you leave with an idea worth taking with you.
+This Engineering Desk documents case studies, knowledge notes, and engineering logs—from production experience to personal and learning projects.
 
 ---
 
 ## Primary CTA
 
-Explore Knowledge →
+View case studies
+
+## Secondary CTA
+
+Discuss a project — opens an email to gracious@diftrak.com.
 
 ---
 
 ## Terminal
 
 ```bash
-$ git status
+$ cat engineering-focus.txt
 
-On branch main
-Working tree clean
+Backend systems
+Reliable APIs
+Engineering trade-offs
 ```
 
 ---
@@ -320,7 +325,7 @@ Beyond the Code
 
 Every system tells a story, but so does the person who builds it.
 
-I'm a backend engineer who enjoys understanding how systems work, why architectural decisions matter, and how thoughtful engineering can solve real problems.
+I'm a software engineer who enjoys understanding how systems work, why architectural decisions matter, and how thoughtful engineering can solve real problems.
 
 Writing, documenting, and teaching are extensions of that curiosity. Sharing what I learn helps me refine my own thinking while hopefully making someone else's path a little clearer.
 

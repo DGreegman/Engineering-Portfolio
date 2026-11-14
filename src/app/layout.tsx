@@ -5,7 +5,16 @@ import { WorkspaceLayout } from "@/components/layout/workspace-layout";
 import { Header } from "@/components/navigation/header";
 import { Sidebar } from "@/components/navigation/sidebar";
 import { Footer } from "@/components/navigation/footer";
-import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
+import {
+  IS_SITE_INDEXABLE,
+  RSS_PATH,
+  SITE_NAME,
+  SITE_URL,
+} from "@/lib/constants/site";
+import {
+  createOpenGraphMetadata,
+  createTwitterMetadata,
+} from "@/lib/seo/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,45 +44,36 @@ export const metadata: Metadata = {
     default: SITE_NAME,
     template: `%s — ${SITE_NAME}`,
   },
-  // No root `description`: every real route already overrides it (Next's
-  // own metadata merging is shallow, root-to-leaf, per-field — confirmed
-  // against this installed Next.js version's own docs, docs/80 §5), so the
-  // only Milestone-1-era placeholder text that lived here
-  // ("Engineering Portfolio project foundation.") was dead prose no reader
-  // ever saw. Removed rather than replaced with new copy (docs/81 §5) —
-  // `description` has no `default`/template mechanism the way `title`
-  // does, so there's nothing structural to fill its place with.
+  description:
+    "Engineering Desk — backend engineering, APIs, reliability, and the trade-offs behind production systems.",
   metadataBase: new URL(SITE_URL),
-  // Feed auto-discovery (Task 6.6, docs/47 WI-5) — the standard mechanism
-  // browsers/feed readers use to find a site's RSS feed, independent of
-  // whether Header's own RSS icon is clickable yet (it isn't — that
-  // activation is a separate, later step, docs/46 §11/§15). Already an
-  // absolute URL, so metadataBase (above) has no effect on it either way.
+  // Feed auto-discovery for browsers and feed readers. The icon links in
+  // both navigation locations now lead to this same feed route.
   alternates: {
     types: {
       "application/rss+xml": `${SITE_URL}${RSS_PATH}`,
     },
   },
-  // Task 8.2 (docs/82, docs/83): the only three openGraph fields — and the
-  // one twitter field — that are genuinely true for the entire site with
-  // no per-route reason to differ. Every route that needs its own title/
-  // description/url/type defines a *complete* openGraph/twitter object of
-  // its own (docs/83 §3) — Next's own metadata merging replaces, not
-  // deep-merges, a child's openGraph/twitter object the moment one is
-  // defined at all, so these three fields are only ever actually inherited
-  // by the two routes that intentionally define no openGraph of their own:
-  // not-found.tsx (docs/83 §9) and the invalid-slug fallback branch on all
-  // three dynamic routes (`return {}`, unmodified). No `images` field here
-  // — no image asset exists yet (docs/82 §8/§9), a deliberate, honest
-  // absence, not a gap to fill by default.
-  openGraph: {
-    siteName: SITE_NAME,
-    locale: "en_US",
-    type: "website",
+  robots: {
+    index: IS_SITE_INDEXABLE,
+    follow: true,
+    googleBot: {
+      index: IS_SITE_INDEXABLE,
+      follow: true,
+      "max-image-preview": "large",
+    },
   },
-  twitter: {
-    card: "summary_large_image",
-  },
+  openGraph: createOpenGraphMetadata({
+    title: SITE_NAME,
+    description:
+      "Engineering Desk — backend engineering, APIs, reliability, and the trade-offs behind production systems.",
+    url: SITE_URL,
+  }),
+  twitter: createTwitterMetadata({
+    title: SITE_NAME,
+    description:
+      "Engineering Desk — backend engineering, APIs, reliability, and the trade-offs behind production systems.",
+  }),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

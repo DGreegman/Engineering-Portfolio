@@ -75,6 +75,7 @@ import Link from "next/link";
 
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
+import { ProjectDiagram } from "@/components/work/project-diagram";
 import { slugify } from "@/lib/utils/slugify";
 import { CASE_STUDY_LISTING_COPY } from "@/lib/constants/work-library-copy";
 import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
@@ -107,8 +108,12 @@ function ListingEntry({ entry }: { entry: CaseStudyEntry }) {
       </h4>
       <Stack gap="xs" className="mt-2">
         <p className="text-small text-muted-foreground">{entry.summary}</p>
-        <p className="text-caption text-muted-foreground/70">{citation}</p>
+        <p className="text-caption text-muted-foreground">{citation}</p>
+        <p className="text-caption text-muted-foreground">
+          {entry.projectContext}
+        </p>
       </Stack>
+      <ProjectDiagram href={entry.href} />
     </li>
   );
 }
@@ -128,7 +133,7 @@ function DomainGroup({
           className="scroll-mt-24 text-h4 text-foreground"
         >
           {domain}{" "}
-          <span className="font-mono text-caption text-muted-foreground/70">
+          <span className="font-mono text-caption text-muted-foreground">
             ({entries.length})
           </span>
         </h3>
@@ -167,7 +172,7 @@ export function CaseStudyListing({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2
             id="case-study-listing-heading"
             className="text-h2 text-foreground"
@@ -190,7 +195,7 @@ export function CaseStudyListing({
             ))}
           </Stack>
         ) : (
-          <Stack as="ul" gap="xl" className="max-w-reading">
+          <Stack as="ul" gap="xl" className="max-w-5xl">
             {groups.map((group) => (
               <DomainGroup
                 key={group.domain}

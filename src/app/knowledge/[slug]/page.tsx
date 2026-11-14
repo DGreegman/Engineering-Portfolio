@@ -36,6 +36,7 @@
  * respectively resolve.
  */
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 import { notFound } from "next/navigation";
 
 import { TopicHero } from "@/components/knowledge/topic-hero";
@@ -112,6 +113,8 @@ export function generateStaticParams() {
   return [...topicParams, ...articleParams];
 }
 
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/knowledge/[slug]">): Promise<Metadata> {
@@ -142,11 +145,22 @@ export async function generateMetadata({
         url,
         siteName: SITE_NAME,
         type: "website",
+
+        images: [
+          {
+            url: SOCIAL_IMAGE.url,
+            width: SOCIAL_IMAGE.width,
+            height: SOCIAL_IMAGE.height,
+            alt: SOCIAL_IMAGE.alt,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title,
         description: topic.description,
+
+        images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
       },
     };
   }
@@ -183,11 +197,22 @@ export async function generateMetadata({
         modifiedTime: frontmatter.updatedAt?.toISOString(),
         tags: frontmatter.tags,
         section: frontmatter.topic,
+
+        images: [
+          {
+            url: SOCIAL_IMAGE.url,
+            width: SOCIAL_IMAGE.width,
+            height: SOCIAL_IMAGE.height,
+            alt: SOCIAL_IMAGE.alt,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title,
         description: frontmatter.description,
+
+        images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
       },
     };
   }
@@ -429,7 +454,13 @@ export default async function KnowledgeSlugPage({
             )
           }
           tableOfContents={<TableOfContents headings={headings} />}
-          body={<ArticleBody source={article.body} headings={headings} />}
+          body={
+            <ArticleBody
+              collection="knowledge"
+              slug={slug}
+              headings={headings}
+            />
+          }
           relatedLearning={
             // Task 5.7 RC refinement #2: pass no element at all — not an
             // element that would render `null` — when there's nothing here,

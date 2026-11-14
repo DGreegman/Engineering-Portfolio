@@ -28,8 +28,9 @@ export function NavLink({ item, className }: NavLinkProps) {
       href={item.href}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
-        isActive && "text-foreground",
+        "rounded-sm text-small font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
+        isActive &&
+          "font-semibold text-primary underline decoration-primary/40 underline-offset-[0.45rem]",
         className,
       )}
     >

@@ -89,7 +89,7 @@ export type KnowledgeFrontmatter = z.infer<typeof knowledgeFrontmatterSchema>;
  * relationship fields already defined in the content model," the identical
  * constraint Task 4.3.8 held itself to for `resolveContinueLearning()`.
  *
- * `domain` and `status` are required, matching `CaseStudyEntry`
+ * `domain`, `status`, and `projectContext` are required, matching `CaseStudyEntry`
  * (`lib/constants/placeholder-work.ts`) — the Work Landing and Case Study
  * Library's own vocabulary, reused here rather than invented fresh, per
  * docs/31 §3's "the same collection's own facets reused at the document
@@ -113,6 +113,7 @@ export type KnowledgeFrontmatter = z.infer<typeof knowledgeFrontmatterSchema>;
  * scope beyond what this task approved, not readiness for it.
  */
 export const workFrontmatterSchema = articleFrontmatterSchema.extend({
+  projectContext: z.string().min(1),
   domain: z.string().min(1),
   status: z.enum(["Completed", "In Progress"]),
   timeline: z.string().optional(),

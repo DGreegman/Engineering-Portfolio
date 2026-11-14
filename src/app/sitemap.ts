@@ -49,6 +49,8 @@ import { getAllArticles } from "@/lib/content/articles";
 import { getAllCaseStudies } from "@/lib/content/case-studies";
 import { getAllEngineeringLogEntries } from "@/lib/content/engineering-logs";
 
+export const dynamic = "force-static";
+
 const STATIC_PATHS = [
   "/",
   "/knowledge",
@@ -59,6 +61,9 @@ const STATIC_PATHS = [
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  // Generate a complete build-time URL inventory for previews too. Preview
+  // metadata stays noindex, and robots.txt advertises the sitemap only after
+  // the deployment's explicit indexing gate is enabled.
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: `${SITE_URL}${path}`,
   }));

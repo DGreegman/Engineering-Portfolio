@@ -3,11 +3,8 @@
  *
  * Renders an Engineering Article's MDX content — Task 4.3.4's Document
  * Body Region content, slotting into `DocumentLayout`'s `body` prop
- * (Task 4.3.2). Composes the existing `MDXContent` renderer
- * (`lib/content/mdx.tsx`, built in an earlier milestone and left
- * deliberately unwired — "not wired into any route yet — no article pages
- * exist in this task," that component's own docstring) with this task's
- * `mdxComponents` map.
+ * (Task 4.3.2). Selects a build-compiled MDX module from the generated
+ * registry and passes this document's component map into it.
  *
  * `headings` (Task 4.3.5): the same `Heading[]` `extractHeadings()`
  * produced from this article's raw MDX source, computed once by the route
@@ -28,8 +25,8 @@
  * body's first element would double up with `DocumentContainer`'s own
  * Section-level top padding instead of sitting flush beneath it.
  *
- * A Server Component: `MDXContent`/`MDXRemote` compile and render MDX
- * server-side; nothing in this file or `mdx-components.tsx` needs a client
+ * A Server Component: the selected compiled module renders server-side;
+ * nothing in this file or `mdx-components.tsx` needs a client
  * boundary — `getMdxComponents()` is a plain function called once during
  * this Server Component's own render, not client state.
  */
@@ -38,15 +35,21 @@ import { getMdxComponents } from "@/components/content/mdx-components";
 import type { Heading } from "@/types/content";
 
 export function ArticleBody({
-  source,
+  collection,
+  slug,
   headings = [],
 }: {
-  source: string;
+  collection: "work" | "knowledge" | "engineering-log";
+  slug: string;
   headings?: Heading[];
 }) {
   return (
-    <div className="[&>*:first-child]:mt-0">
-      <MDXContent source={source} components={getMdxComponents(headings)} />
+    <div className="article-body-prose [&>*:first-child]:mt-0">
+      <MDXContent
+        collection={collection}
+        slug={slug}
+        components={getMdxComponents(headings)}
+      />
     </div>
   );
 }

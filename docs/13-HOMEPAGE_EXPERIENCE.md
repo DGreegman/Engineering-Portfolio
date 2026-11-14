@@ -206,9 +206,9 @@ Provides orientation without competing for attention.
 
 Purpose:
 
-Introduce the Engineering Workspace.
+Introduce the Engineering Desk identity and state the engineer's role and backend focus on the first screen.
 
-The first screen should resemble the README of an engineering repository.
+The first screen should resemble the README of an engineering repository, with visible routes to case-study evidence and a working project-enquiry contact method.
 
 This section establishes tone rather than providing biography.
 

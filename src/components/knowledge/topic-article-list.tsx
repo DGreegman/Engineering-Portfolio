@@ -53,7 +53,7 @@ function ArticleRow({ article }: { article: KnowledgeArticleCard }) {
         <p className="text-small text-muted-foreground">
           {article.description}
         </p>
-        <p className="text-caption text-muted-foreground/70 capitalize">
+        <p className="text-caption text-muted-foreground capitalize">
           {citation}
         </p>
       </Stack>
@@ -80,7 +80,7 @@ export function TopicArticleList({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2 id="articles-heading" className="text-h2 text-foreground">
             {title}
           </h2>
@@ -100,7 +100,7 @@ export function TopicArticleList({
             ))}
           </Stack>
         ) : (
-          <ol className="max-w-reading divide-y divide-border">
+          <ol className="max-w-5xl divide-y divide-border">
             {articles.map((article) => (
               <ArticleRow key={article.href} article={article} />
             ))}

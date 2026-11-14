@@ -15,46 +15,46 @@
      weight so a single utility class (e.g. `text-h1`) fully expresses one
      level of the hierarchy. Values are restrained and mathematically
      related, per the Design System's "Engineering Precision" principle. */
-  --text-display: 3rem;
-  --text-display--line-height: 1.1;
-  --text-display--letter-spacing: -0.02em;
+  --text-display: clamp(3.5rem, 2.6rem + 3.2vw, 4.5rem);
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.055em;
   --text-display--font-weight: 700;
 
-  --text-h1: 2.25rem;
-  --text-h1--line-height: 1.2;
-  --text-h1--letter-spacing: -0.01em;
+  --text-h1: clamp(2.75rem, 2.2rem + 1.6vw, 3.25rem);
+  --text-h1--line-height: 1.08;
+  --text-h1--letter-spacing: -0.045em;
   --text-h1--font-weight: 700;
 
-  --text-h2: 1.75rem;
-  --text-h2--line-height: 1.25;
-  --text-h2--letter-spacing: -0.01em;
+  --text-h2: clamp(1.875rem, 1.6rem + 0.8vw, 2.125rem);
+  --text-h2--line-height: 1.16;
+  --text-h2--letter-spacing: -0.035em;
   --text-h2--font-weight: 600;
 
-  --text-h3: 1.375rem;
-  --text-h3--line-height: 1.3;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.25;
   --text-h3--font-weight: 600;
 
-  --text-h4: 1.125rem;
-  --text-h4--line-height: 1.4;
+  --text-h4: 1.25rem;
+  --text-h4--line-height: 1.35;
   --text-h4--font-weight: 600;
 
   /* Generous line-height for long-form reading comfort (UX Guidelines:
      "Reading Comes First"). */
-  --text-body: 1rem;
-  --text-body--line-height: 1.7;
+  --text-body: 1.125rem;
+  --text-body--line-height: 1.68;
   --text-body--font-weight: 400;
 
-  --text-small: 0.875rem;
-  --text-small--line-height: 1.5;
+  --text-small: 1rem;
+  --text-small--line-height: 1.55;
   --text-small--font-weight: 400;
 
   /* Slightly wider tracking suits small uppercase-leaning metadata labels. */
-  --text-caption: 0.75rem;
-  --text-caption--line-height: 1.4;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.45;
   --text-caption--letter-spacing: 0.02em;
   --text-caption--font-weight: 500;
 
-  --text-code: 0.875rem;
+  --text-code: 0.9375rem;
   --text-code--line-height: 1.6;
   --text-code--font-weight: 400;
 
@@ -117,10 +117,29 @@
 /* Markdown/MDX typography. Scoped to `.markdown` so a future content
    renderer can opt in via className — no component is defined here. */
 @layer components {
+  /* Long-form body copy is justified only at desktop reading widths.
+     Keeping the last line ragged and allowing English hyphenation avoids
+     stretched spacing, while headings, lists, metadata, and code stay natural. */
+  .article-body-prose > p {
+    text-align: left;
+  }
+
+  @media (min-width: 1024px) {
+    .article-body-prose > p {
+      text-align: justify;
+      text-align-last: left;
+      hyphens: auto;
+    }
+  }
+
   .markdown {
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
     color: var(--foreground);
+  }
+
+  .markdown > :first-child {
+    margin-top: 0;
   }
 
   .markdown > * + * {

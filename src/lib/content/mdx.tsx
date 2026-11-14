@@ -1,38 +1,28 @@
-import { MDXRemote, type MDXRemoteProps } from "next-mdx-remote/rsc";
-import remarkGfm from "remark-gfm";
+import type { MDXComponents } from "mdx/types";
+import { createElement } from "react";
+import { getCompiledMdx } from "../../../.generated-mdx/registry";
 
 /**
- * Configured MDX render entry point for the content engine. An async
- * Server Component (via next-mdx-remote/rsc) — no client boundary needed
- * unless a future custom component requires one.
- *
- * Not wired into any route yet — no article pages exist in this task. This
- * establishes how MDX will be compiled once one does, with remark-gfm
- * (tables, task lists, strikethrough — content/*.mdx will use these) always
- * enabled. `components` stays caller-supplied and empty by default: the
- * Markdown/Knowledge component library is Milestone 4, not this task.
+ * Selects a Next-compiled MDX module from the build-generated registry.
+ * The content loader still reads source MDX for metadata, search, feeds,
+ * and heading extraction; this renderer only uses the compiled React
+ * component, so Worker requests do not evaluate generated source strings.
  */
 export function MDXContent({
-  source,
+  collection,
+  slug,
   components,
-  options,
-  ...props
-}: MDXRemoteProps) {
-  return (
-    <MDXRemote
-      source={source}
-      components={components}
-      options={{
-        ...options,
-        mdxOptions: {
-          ...options?.mdxOptions,
-          remarkPlugins: [
-            remarkGfm,
-            ...(options?.mdxOptions?.remarkPlugins ?? []),
-          ],
-        },
-      }}
-      {...props}
-    />
-  );
+}: {
+  collection: "work" | "knowledge" | "engineering-log";
+  slug: string;
+  components: MDXComponents;
+}) {
+  const compiledMdx = getCompiledMdx(collection, slug);
+  if (!compiledMdx) {
+    throw new Error(
+      `No compiled MDX module registered for ${collection}/${slug}`,
+    );
+  }
+
+  return createElement(compiledMdx, { components });
 }

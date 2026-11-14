@@ -27,13 +27,9 @@
  * disk for a page visited with no query yet.
  */
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 
-import { Section } from "@/components/layout/section";
-import { Stack } from "@/components/layout/stack";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { SearchResults } from "@/components/search/search-results";
-import { hasSearchResults, searchContent } from "@/lib/content/search";
+import { SearchPageClient } from "@/components/search/search-page-client";
 import { RSS_PATH, SITE_NAME, SITE_URL } from "@/lib/constants/site";
 
 // Task 8.2 (docs/83 §5, §10): one local const, read three times below.
@@ -70,71 +66,23 @@ export const metadata: Metadata = {
     url: "/search",
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE.url,
+        width: SOCIAL_IMAGE.width,
+        height: SOCIAL_IMAGE.height,
+        alt: SOCIAL_IMAGE.alt,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Search",
     description,
+    images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
   },
 };
 
-interface SearchPageProps {
-  searchParams: Promise<{ q?: string | string[] }>;
-}
-
-export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const resolvedParams = await searchParams;
-  const rawQuery = Array.isArray(resolvedParams.q)
-    ? resolvedParams.q[0]
-    : resolvedParams.q;
-  const query = (rawQuery ?? "").trim();
-
-  const results = query ? searchContent(query) : null;
-
-  return (
-    <Section spacing="md" width="full">
-      <Stack gap="xl" className="max-w-reading">
-        <Stack gap="lg">
-          <p className="font-mono text-caption text-muted-foreground">Search</p>
-          <h1 className="text-h1 text-foreground">
-            Find a page across Knowledge, Work, and Engineering Log.
-          </h1>
-
-          <form
-            method="GET"
-            action="/search"
-            className="flex flex-wrap items-center gap-2"
-          >
-            <label htmlFor="search-query" className="sr-only">
-              Search query
-            </label>
-            <Input
-              id="search-query"
-              type="search"
-              name="q"
-              defaultValue={query}
-              placeholder="Search by title, description, or tag…"
-              className="max-w-sm"
-            />
-            <Button type="submit" variant="outline">
-              Search
-            </Button>
-          </form>
-        </Stack>
-
-        {!query ? (
-          <p className="text-body text-muted-foreground">
-            Enter a term to search Knowledge, Work, and Engineering Log by
-            title, description, or tag.
-          </p>
-        ) : results && hasSearchResults(results) ? (
-          <SearchResults results={results} />
-        ) : (
-          <p className="text-body text-muted-foreground">
-            No results for &ldquo;{query}&rdquo;.
-          </p>
-        )}
-      </Stack>
-    </Section>
-  );
+export default function SearchPage() {
+  return <SearchPageClient />;
 }

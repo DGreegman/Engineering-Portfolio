@@ -25,6 +25,7 @@
  * isn't implemented as a copy-paste of the other.
  */
 import type { Metadata } from "next";
+import { SOCIAL_IMAGE } from "@/lib/seo/metadata";
 
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
@@ -55,11 +56,20 @@ export const metadata: Metadata = {
     url: "/engineering-log",
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: SOCIAL_IMAGE.url,
+        width: SOCIAL_IMAGE.width,
+        height: SOCIAL_IMAGE.height,
+        alt: SOCIAL_IMAGE.alt,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Engineering Log",
     description,
+    images: { url: SOCIAL_IMAGE.url, alt: SOCIAL_IMAGE.alt },
   },
 };
 
@@ -69,8 +79,8 @@ export default function EngineeringLogIndexPage() {
   return (
     <>
       <Section spacing="md" width="full">
-        <Stack gap="lg" className="max-w-reading">
-          <p className="font-mono text-caption text-muted-foreground">
+        <Stack gap="lg" className="max-w-4xl">
+          <p className="font-mono text-caption font-medium uppercase tracking-[0.12em] text-brand-accent">
             Engineering Log
           </p>
 
@@ -99,7 +109,7 @@ export default function EngineeringLogIndexPage() {
         width="full"
       >
         <Stack gap="lg">
-          <Stack gap="xs" className="max-w-reading">
+          <Stack gap="xs" className="max-w-4xl">
             <h2
               id="engineering-log-listing-heading"
               className="text-h2 text-foreground"
@@ -119,7 +129,7 @@ export default function EngineeringLogIndexPage() {
               </p>
             </Stack>
           ) : (
-            <ol className="max-w-reading divide-y divide-border/50">
+            <ol className="max-w-5xl border-b border-border/80">
               {entries.map((entry) => (
                 <LogEntryRow
                   key={entry.slug}

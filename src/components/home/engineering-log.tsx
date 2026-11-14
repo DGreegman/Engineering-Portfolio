@@ -78,18 +78,22 @@ function LogEntryRow({
   logNumber: number;
 }) {
   return (
-    <li className="relative -mx-4 rounded-md px-4 py-4 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground/60">
-        LOG {String(logNumber).padStart(3, "0")} · {entry.date}
+    <li className="relative grid gap-2 border-t border-border/80 py-5 transition-colors hover:bg-secondary/40 focus-within:bg-secondary/40 focus-within:ring-2 focus-within:ring-ring sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-6">
+      <p className="font-mono text-caption text-muted-foreground">
+        <span className="text-brand-accent">
+          LOG {String(logNumber).padStart(3, "0")}
+        </span>
+        <span className="hidden sm:inline"> · </span>
+        <span className="block sm:inline">{entry.date}</span>
       </p>
-      <h4 className="mt-1 text-body font-normal text-foreground">
+      <h3 className="text-h4 font-medium text-foreground">
         <Link
           href={entry.href}
           className="after:absolute after:inset-0 focus:outline-none"
         >
           {entry.title}
         </Link>
-      </h4>
+      </h3>
     </li>
   );
 }
@@ -105,7 +109,7 @@ export function EngineeringLog({
   return (
     // width="full" — WorkspaceLayout supplies the shared PageContainer
     // for every page now; see readme-hero.tsx's comment for why.
-    <Section spacing="md" width="full">
+    <Section spacing="sm" width="full">
       <Stack gap="lg">
         <Stack gap="xs" className="max-w-reading">
           <h2 className="text-h2 text-foreground">
@@ -128,7 +132,7 @@ export function EngineeringLog({
               padding box as the row's spacing, so canceling that padding
               from the outside would drag the highlight into the heading
               above and the button below. */}
-          <ol className="max-w-reading divide-y divide-border/50">
+          <ol className="max-w-5xl border-b border-border/80">
             {entries.map((entry, index) => (
               <LogEntryRow
                 key={entry.href}

@@ -10,12 +10,9 @@
  * reachable without scrolling to the footer. This component closes that
  * gap and nothing else.
  *
- * Scope, exactly as approved — the panel contains **only** the four
- * `PRIMARY_NAVIGATION` destinations (Knowledge, Work, Engineering Log,
- * About). It does not duplicate Search, RSS, GitHub, LinkedIn, email, or
- * the theme toggle — those already work correctly at every breakpoint via
- * `Header`'s own always-visible icon cluster and need no mobile-specific
- * treatment.
+ * The panel contains the four primary destinations and restores RSS and
+ * GitHub links on narrow screens where those header icons are hidden.
+ * Search and theme controls remain in the header at every breakpoint.
  *
  * Reads `PRIMARY_NAVIGATION` (`lib/navigation/config.ts`) directly and
  * renders each item through `NavLink` — the same data and the same
@@ -53,12 +50,14 @@
  */
 import { useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { Menu, X } from "lucide-react";
+import { Menu, Rss, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/navigation/nav-link";
 import { PRIMARY_NAVIGATION } from "@/lib/navigation/config";
+import { GITHUB_URL } from "@/lib/constants/site-identity";
+import { GithubIcon } from "@/components/shared/icons";
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
@@ -125,6 +124,33 @@ export function MobileNavigation() {
               ))}
             </ul>
           </nav>
+          <div className="mt-auto border-t border-border pt-5">
+            <p className="mb-3 text-caption font-medium text-muted-foreground">
+              More
+            </p>
+            <ul className="flex flex-col gap-1">
+              <li>
+                <a
+                  href="/rss.xml"
+                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-body text-foreground hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <Rss aria-hidden="true" className="size-4" />
+                  RSS feed
+                </a>
+              </li>
+              <li>
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-md px-3 py-2.5 text-body text-foreground hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <GithubIcon aria-hidden="true" className="size-4" />
+                  GitHub
+                </a>
+              </li>
+            </ul>
+          </div>
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

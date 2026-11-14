@@ -16,7 +16,7 @@ type PrimaryNavigationProps = {
 export function PrimaryNavigation({ className }: PrimaryNavigationProps) {
   return (
     <nav aria-label="Primary" className={className}>
-      <ul className="flex items-center gap-6">
+      <ul className="flex items-center gap-4 xl:gap-6">
         {PRIMARY_NAVIGATION.map((item) => (
           <li key={item.href}>
             <NavLink item={item} />

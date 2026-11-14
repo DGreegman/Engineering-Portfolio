@@ -9,14 +9,11 @@
  * Copy is reproduced verbatim from lib/constants/homepage-copy.ts's
  * `CASE_STUDIES_COPY`.
  *
- * Deliberately not `Card`-based, unlike `EngineeringNotebook` — Task 3.5
- * §4 explicitly says "rather than a project card." Instead, entries render
- * as a single-column, `divide-y`-separated list (closer to How I Think's
- * document identity than Engineering Notebook's card grid), reinforcing
- * "case file" over "project tile." No thumbnails, no logos, no tech-stack
- * listing, no "View Demo" — title (the thesis), one-sentence summary (the
- * challenge), then a quiet citation line (domain, status, and — only when
- * the work is finished — a date).
+ * The first case is a featured warm-surface panel; supporting cases use
+ * quieter editorial rows. This establishes work as the page's main evidence
+ * without turning every entry into an identical tile. No thumbnails,
+ * logos, tech-stack listing, or "View Demo" — title, summary, context, and
+ * truthful citation metadata carry the story.
  *
  * Fully data-agnostic, same as `EngineeringNotebook`: `caseStudies` is a
  * required prop; this component has no idea it's `PLACEHOLDER_WORK`
@@ -25,15 +22,8 @@
  * renders `CASE_STUDIES_COPY.emptyState`, genuine doc-14 copy for that
  * real future case.
  *
- * Whole-row clickability via the same stretched-link pattern
- * `EngineeringNotebook` settled on: the title is the one real `<Link>`,
- * `after:absolute after:inset-0` extends its hit area to the full row.
- * Unlike Engineering Notebook's card hover (scale + ring — a "card"
- * affordance this section is explicitly avoiding), hover/focus here is a
- * quiet full-row background tint, closer to highlighting a row in a
- * document than lifting a tile. Keyboard focus still gets the site's
- * standard strong `ring-2 ring-ring` indicator, kept distinct from the
- * subtler hover tint.
+ * Each entry uses one stretched link, so the title remains the only
+ * keyboard stop while the full panel or row stays clickable.
  *
  * A Server Component: static content, no interactivity.
  */
@@ -42,6 +32,7 @@ import Link from "next/link";
 import { Section } from "@/components/layout/section";
 import { Stack } from "@/components/layout/stack";
 import { Button } from "@/components/ui/button";
+import { ProjectDiagram } from "@/components/work/project-diagram";
 import { CASE_STUDIES_COPY } from "@/lib/constants/homepage-copy";
 import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
 
@@ -62,38 +53,63 @@ import type { CaseStudyEntry } from "@/lib/constants/placeholder-work";
 function CaseFile({
   entry,
   caseNumber,
+  featured = false,
 }: {
   entry: CaseStudyEntry;
   caseNumber: number;
+  featured?: boolean;
 }) {
   const citation = entry.publishedAt
     ? `${entry.domain} • ${entry.status} • ${entry.publishedAt}`
     : `${entry.domain} • ${entry.status}`;
+  const compactVaultPay = featured && entry.href === "/work/vaultpay";
 
   return (
-    // py-8 is never trimmed on first/last (unlike How I Think's rail list)
-    // — this padding also sizes the hover/focus highlight box via
-    // rounded-md + bg-muted/40, so a first:pt-0/last:pb-0 would leave the
-    // first and last entries' highlight looking cramped against their own
-    // top/bottom edge while every entry in between stays symmetric. The
-    // parent <ol> cancels the resulting extra outer space with -my-8
-    // instead, so every entry's padding — and hover box — stays uniform.
-    <li className="relative -mx-4 rounded-md px-4 py-8 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground">
-        CASE {String(caseNumber).padStart(3, "0")}
-      </p>
-      <h4 className="mt-1 text-h4 text-foreground">
-        <Link
-          href={entry.href}
-          className="after:absolute after:inset-0 focus:outline-none"
+    <li
+      className={
+        featured
+          ? `relative mb-6 rounded-xl border border-border bg-card p-6 shadow-sm shadow-foreground/5 transition-colors hover:border-brand-accent/40 focus-within:ring-2 focus-within:ring-ring sm:p-9 lg:col-span-2 ${compactVaultPay ? "lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] lg:items-center lg:gap-8" : ""}`
+          : "relative border-t border-border px-6 py-6 transition-colors hover:bg-secondary/60 focus-within:bg-secondary/60 focus-within:ring-2 focus-within:ring-ring sm:px-9"
+      }
+    >
+      <div className="min-w-0">
+        <p className="font-mono text-caption font-medium uppercase tracking-[0.1em] text-brand-accent">
+          CASE {String(caseNumber).padStart(3, "0")}
+        </p>
+        <h3
+          className={
+            featured
+              ? "mt-2 max-w-[30ch] text-h2 text-foreground"
+              : "mt-2 text-h4 text-foreground"
+          }
         >
-          {entry.title}
-        </Link>
-      </h4>
-      <Stack gap="xs" className="mt-2">
-        <p className="text-small text-muted-foreground">{entry.summary}</p>
-        <p className="text-caption text-muted-foreground/70">{citation}</p>
-      </Stack>
+          <Link
+            href={entry.href}
+            className="after:absolute after:inset-0 focus:outline-none"
+          >
+            {entry.title}
+          </Link>
+        </h3>
+        <Stack gap="xs" className="mt-2">
+          <p
+            className={
+              featured
+                ? "max-w-[72ch] text-body text-muted-foreground"
+                : "max-w-[72ch] text-small text-muted-foreground"
+            }
+          >
+            {entry.summary}
+          </p>
+          <p className="pt-1 text-caption text-muted-foreground">{citation}</p>
+          <p className="text-small text-foreground/85">
+            {entry.projectContext}
+          </p>
+        </Stack>
+      </div>
+      <ProjectDiagram
+        href={entry.href}
+        className={compactVaultPay ? "lg:mt-0" : undefined}
+      />
     </li>
   );
 }
@@ -138,12 +154,13 @@ export function EngineeringCaseStudies({
             // and the button below — the padding isn't just empty space,
             // it's the boundary of something visible. The natural, slightly
             // larger gap this leaves is intentional whitespace, not a bug.
-            <ol className="max-w-reading divide-y divide-border">
+            <ol className="grid gap-x-10 lg:grid-cols-2">
               {caseStudies.map((entry, index) => (
                 <CaseFile
                   key={entry.title}
                   entry={entry}
                   caseNumber={index + 1}
+                  featured={index === 0}
                 />
               ))}
             </ol>

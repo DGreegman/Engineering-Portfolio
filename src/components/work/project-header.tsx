@@ -38,6 +38,7 @@ export interface ProjectHeaderProps {
   description: string;
   domain: string;
   status: "Completed" | "In Progress";
+  projectContext: string;
   timeline?: string;
   difficulty?: Difficulty;
   technologies: string[];
@@ -48,6 +49,7 @@ export function ProjectHeader({
   description,
   domain,
   status,
+  projectContext,
   timeline,
   difficulty,
   technologies,
@@ -64,10 +66,15 @@ export function ProjectHeader({
   }
 
   return (
-    <Stack gap="lg" className="max-w-reading">
+    <Stack gap="lg" className="max-w-4xl">
       <h1 className="text-h1 text-foreground">{title}</h1>
 
       <p className="text-body text-muted-foreground">{description}</p>
+
+      <p className="inline-flex w-fit max-w-full flex-wrap rounded-md border border-primary/30 bg-accent px-3 py-2 text-small text-accent-foreground">
+        <span className="mr-1 font-medium">Project context:</span>
+        {projectContext}
+      </p>
 
       <Stack gap="xs">
         <p className="text-caption text-muted-foreground capitalize">
@@ -80,7 +87,7 @@ export function ProjectHeader({
         </p>
 
         {technologies.length > 0 && (
-          <p className="text-caption text-muted-foreground/70">
+          <p className="text-caption text-muted-foreground">
             {technologies.join(" · ")}
           </p>
         )}

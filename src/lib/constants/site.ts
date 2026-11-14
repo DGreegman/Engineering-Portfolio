@@ -7,48 +7,168 @@
  */
 
 /** docs/01-PERSONAL_BRAND.md's documented identity. */
-export const SITE_NAME = "Gracious Obeagu";
+export {
+  COMPANY_URL,
+  CONTACT_EMAIL,
+  FOOTER_CLOSING_MESSAGE,
+  GITHUB_URL,
+  LINKEDIN_URL,
+  RSS_PATH,
+  SITE_NAME,
+} from "@/lib/constants/site-identity";
 
-export const GITHUB_URL = "https://github.com/DGreegman";
+export const PRODUCTION_SITE_URL = "https://gracious.diftrak.com";
+export const PRODUCTION_SITE_HOST = new URL(PRODUCTION_SITE_URL).host;
 
-export const LINKEDIN_URL = "https://linkedin.com/in/gracious-obeagu";
+function parseSiteOrigin(value: string): string {
+  let url: URL;
 
-export const CONTACT_EMAIL = "graciousobeagu@gmail.com";
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(
+      `SITE_URL must be a valid absolute URL; received: ${value}`,
+    );
+  }
+
+  const isLocalhost = url.hostname === "localhost";
+  if (
+    (url.protocol !== "https:" && !(isLocalhost && url.protocol === "http:")) ||
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error(
+      "SITE_URL must be an HTTPS origin without a path or credentials.",
+    );
+  }
+
+  return url.origin;
+}
+
+function resolveSiteUrl(): string {
+  const environment = process.env.VERCEL_ENV;
+  const configuredUrl = process.env.SITE_URL;
+
+  if (environment === "preview") {
+    const deploymentHost = process.env.VERCEL_URL;
+    if (!deploymentHost || !/^[a-z0-9.-]+$/i.test(deploymentHost)) {
+      throw new Error(
+        "Preview builds require Vercel system environment variables, including VERCEL_URL.",
+      );
+    }
+    return parseSiteOrigin(`https://${deploymentHost}`);
+  }
+
+  if (environment === "production") {
+    // When no explicit portfolio origin has been configured, use Vercel's
+    // configured production hostname instead of emitting localhost. The
+    // separate indexing gate below keeps the beta host non-indexable.
+    const origin = configuredUrl
+      ? parseSiteOrigin(configuredUrl)
+      : process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? parseSiteOrigin(
+            `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`,
+          )
+        : null;
+    if (!origin) {
+      throw new Error(
+        "Production builds require SITE_URL or VERCEL_PROJECT_PRODUCTION_URL.",
+      );
+    }
+    if (origin !== PRODUCTION_SITE_URL) {
+      // A beta production deployment may temporarily serve its Vercel
+      // production hostname. For that case, preserve that actual origin.
+      if (configuredUrl) {
+        throw new Error(`Production SITE_URL must be ${PRODUCTION_SITE_URL}.`);
+      }
+    }
+    return origin;
+  }
+
+  // Cloudflare Pages supplies the exact deployment URL at build time. Use it
+  // for previews so their canonical metadata never points at production. A
+  // production build may use the approved custom origin before DNS is
+  // attached; until then, CF_PAGES_URL remains a safe fallback.
+  if (process.env.CF_PAGES === "1") {
+    const productionBranch = process.env.SITE_PRODUCTION_BRANCH;
+    const isConfiguredProductionBuild =
+      process.env.SITE_DEPLOYMENT_ENV === "production" &&
+      Boolean(productionBranch) &&
+      process.env.CF_PAGES_BRANCH === productionBranch;
+
+    if (isConfiguredProductionBuild && configuredUrl) {
+      const origin = parseSiteOrigin(configuredUrl);
+      if (origin !== PRODUCTION_SITE_URL) {
+        throw new Error(`Production SITE_URL must be ${PRODUCTION_SITE_URL}.`);
+      }
+      return origin;
+    }
+
+    const pagesUrl = process.env.CF_PAGES_URL;
+    if (!pagesUrl) {
+      throw new Error("Cloudflare Pages builds require CF_PAGES_URL.");
+    }
+    return parseSiteOrigin(pagesUrl);
+  }
+
+  // Retain the existing Workers preview compatibility for the already
+  // approved local POC. Pages builds use the branch above.
+  const cloudflareEnvironment = process.env.SITE_DEPLOYMENT_ENV;
+  if (cloudflareEnvironment === "preview") {
+    return configuredUrl ? parseSiteOrigin(configuredUrl) : PRODUCTION_SITE_URL;
+  }
+
+  if (cloudflareEnvironment === "production") {
+    if (!configuredUrl) {
+      throw new Error(
+        "Cloudflare production builds require SITE_URL to be explicitly configured.",
+      );
+    }
+    const origin = parseSiteOrigin(configuredUrl);
+    if (origin !== PRODUCTION_SITE_URL) {
+      throw new Error(`Production SITE_URL must be ${PRODUCTION_SITE_URL}.`);
+    }
+    return origin;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    return configuredUrl
+      ? parseSiteOrigin(configuredUrl)
+      : "http://localhost:3000";
+  }
+
+  if (!configuredUrl) {
+    throw new Error(
+      "Set SITE_URL for production builds; localhost is only used by local development.",
+    );
+  }
+
+  return parseSiteOrigin(configuredUrl);
+}
 
 /**
- * The documented future RSS route (docs/10-Technical Architecture.md's
- * Routing section). Live as of Task 6.6 (`src/app/rss.xml/route.ts`).
+ * Canonical origin used by metadata, JSON-LD, sitemap, and RSS.
+ * Production is deliberately strict; previews use their unique deployment URL.
  */
-export const RSS_PATH = "/rss.xml";
+export const SITE_URL = resolveSiteUrl();
 
 /**
- * The site's own absolute origin — Task 6.6's central finding
- * (docs/46-RSS_EXPERIENCE.md §7, docs/47-RSS_IMPLEMENTATION_PLAN.md WI-1):
- * the first value in this repository that anything needs an absolute URL
- * for. RSS's `<link>`/`<guid>` elements require one; Sitemap
- * (docs/48-SITEMAP_EXPERIENCE.md) will need the identical value and is
- * expected to import this constant directly rather than declare its own.
- *
- * Deliberately unprefixed — not `NEXT_PUBLIC_SITE_URL`. Every current
- * consumer (`app/rss.xml/route.ts`, and Sitemap's own future `sitemap.ts`)
- * is 100% server-only code; the `NEXT_PUBLIC_` prefix exists specifically
- * to inline a value into client-side bundles, which nothing here does.
- *
- * Falls back to `http://localhost:3000` when unset so `pnpm dev`/`pnpm
- * build` work with zero required local configuration — the same restraint
- * docs/12-Implementation Roadmap.md's own Milestone 1 section already
- * asked for ("no environment validation layer... until first needed").
- * Production deployment must set a real `SITE_URL` environment variable;
- * this repository does not know, and does not invent, that value.
+ * Indexing is opt-in. Vercel additionally requires its configured production
+ * hostname to match the approved custom host; Cloudflare requires its
+ * explicit production marker. Preview and unknown environments stay noindex.
  */
-export const SITE_URL = process.env.SITE_URL ?? "http://localhost:3000";
-
-/**
- * The footer's closing message (docs/03-SITEMAP.md's Footer section),
- * kept as data rather than hardcoded JSX so the copy is configurable in
- * one place. Each entry renders as its own line.
- */
-export const FOOTER_CLOSING_MESSAGE = [
-  "Built with curiosity.",
-  "See you in the next commit.",
-] as const;
+export const IS_SITE_INDEXABLE =
+  process.env.SITE_INDEXING_ENABLED === "true" &&
+  SITE_URL === PRODUCTION_SITE_URL &&
+  (process.env.VERCEL_ENV
+    ? process.env.VERCEL_ENV === "production" &&
+      process.env.VERCEL_PROJECT_PRODUCTION_URL?.toLowerCase() ===
+        PRODUCTION_SITE_HOST
+    : process.env.CF_PAGES === "1"
+      ? process.env.SITE_DEPLOYMENT_ENV === "production" &&
+        Boolean(process.env.SITE_PRODUCTION_BRANCH) &&
+        process.env.CF_PAGES_BRANCH === process.env.SITE_PRODUCTION_BRANCH
+      : process.env.SITE_DEPLOYMENT_ENV === "production");

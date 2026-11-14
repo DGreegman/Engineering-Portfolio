@@ -56,7 +56,7 @@ Create a portfolio that demonstrates:
 
 Primary Goals
 
-- Position the owner for Intermediate → Senior Backend Engineer opportunities.
+- Position the owner for Intermediate → Senior Software Engineer opportunities.
 - Showcase engineering decision-making.
 - Highlight security-first software development.
 - Demonstrate technical leadership.

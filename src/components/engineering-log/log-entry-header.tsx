@@ -42,7 +42,7 @@ export function LogEntryHeader({
   tags,
 }: LogEntryHeaderProps) {
   return (
-    <Stack gap="lg" className="max-w-reading">
+    <Stack gap="lg" className="max-w-4xl">
       <h1 className="text-h1 text-foreground">{title}</h1>
 
       <p className="text-body text-muted-foreground">{description}</p>
@@ -51,7 +51,7 @@ export function LogEntryHeader({
         <p className="text-caption text-muted-foreground">{publishedAt}</p>
 
         {tags.length > 0 && (
-          <p className="text-caption text-muted-foreground/70">
+          <p className="text-caption text-muted-foreground">
             {tags.join(" · ")}
           </p>
         )}

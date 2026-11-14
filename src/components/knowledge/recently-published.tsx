@@ -25,7 +25,7 @@ import type { KnowledgeArticleCard } from "@/lib/constants/placeholder-knowledge
 function RecentEntryRow({ article }: { article: KnowledgeArticleCard }) {
   return (
     <li className="relative -mx-4 rounded-md px-4 py-4 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 focus-within:ring-2 focus-within:ring-ring">
-      <p className="font-mono text-caption text-muted-foreground/60">
+      <p className="font-mono text-caption text-muted-foreground">
         {article.topic} · {article.publishedAt}
       </p>
       <h3 className="mt-1 text-body font-normal text-foreground">
@@ -54,7 +54,7 @@ export function RecentlyPublished({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2
             id="recently-published-heading"
             className="text-h2 text-foreground"
@@ -77,7 +77,7 @@ export function RecentlyPublished({
             ))}
           </Stack>
         ) : (
-          <ol className="max-w-reading divide-y divide-border/50">
+          <ol className="max-w-5xl border-b border-border/80">
             {articles.map((article) => (
               <RecentEntryRow key={article.href} article={article} />
             ))}

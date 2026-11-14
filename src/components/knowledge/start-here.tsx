@@ -59,21 +59,33 @@ import type { KnowledgeArticleCard } from "@/lib/constants/placeholder-knowledge
 function StartHereEntry({
   article,
   cardLabel,
+  featured,
 }: {
   article: KnowledgeArticleCard;
   cardLabel: string;
+  featured: boolean;
 }) {
   const citation = article.difficulty
     ? `${article.topic} · ${article.difficulty} · ${article.readingTime}`
     : `${article.topic} · ${article.readingTime}`;
 
   return (
-    <Card className="relative h-full transition-[transform,box-shadow] duration-150 ease-out hover:ring-foreground/20 focus-within:ring-2 focus-within:ring-ring motion-safe:hover:scale-[1.015] motion-safe:focus-within:scale-[1.015]">
+    <Card
+      className={
+        featured
+          ? "relative h-full justify-center border-brand-accent/25 bg-secondary/75 py-8 focus-within:ring-2 focus-within:ring-ring sm:py-10"
+          : "relative h-full border-border/80 bg-card py-5 focus-within:ring-2 focus-within:ring-ring"
+      }
+    >
       <CardHeader>
         <p className="font-mono text-caption text-muted-foreground">
           {cardLabel}
         </p>
-        <h3 className="text-h4 text-foreground">
+        <h3
+          className={
+            featured ? "text-h3 text-foreground" : "text-h4 text-foreground"
+          }
+        >
           <Link
             href={article.href}
             className="after:absolute after:inset-0 focus:outline-none"
@@ -84,10 +96,16 @@ function StartHereEntry({
       </CardHeader>
       <CardContent>
         <Stack gap="xs">
-          <p className="text-small text-muted-foreground">
+          <p
+            className={
+              featured
+                ? "text-body text-muted-foreground"
+                : "text-small text-muted-foreground"
+            }
+          >
             {article.description}
           </p>
-          <p className="text-caption text-muted-foreground/70 capitalize">
+          <p className="text-caption text-muted-foreground capitalize">
             {citation}
           </p>
         </Stack>
@@ -119,7 +137,7 @@ export function StartHere({
       width="full"
     >
       <Stack gap="lg">
-        <Stack gap="xs" className="max-w-reading">
+        <Stack gap="xs" className="max-w-4xl">
           <h2 id="start-here-heading" className="text-h2 text-foreground">
             {title}
           </h2>
@@ -139,10 +157,19 @@ export function StartHere({
             ))}
           </Stack>
         ) : (
-          <ul className="grid gap-6 lg:grid-cols-3">
-            {articles.map((article) => (
-              <li key={article.title}>
-                <StartHereEntry article={article} cardLabel={cardLabel} />
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)] lg:grid-rows-2 lg:gap-5">
+            {articles.map((article, index) => (
+              <li
+                key={article.title}
+                className={
+                  index === 0 ? "sm:col-span-2 lg:col-span-1 lg:row-span-2" : ""
+                }
+              >
+                <StartHereEntry
+                  article={article}
+                  cardLabel={cardLabel}
+                  featured={index === 0}
+                />
               </li>
             ))}
           </ul>

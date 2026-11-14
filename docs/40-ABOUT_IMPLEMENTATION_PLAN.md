@@ -62,7 +62,7 @@ No file's actual contract differs from what `docs/39` assumed. This plan proceed
 BEYOND_THE_CODE_COPY (homepage-copy.ts)         ABOUT_*_COPY (about-copy.ts, new)
         │                                               │
         ▼                                               ▼
-"I'm a backend engineer who enjoys           Engineering Principles: the fuller,
+"I'm a software engineer who enjoys           Engineering Principles: the fuller,
  understanding how systems work..."           multi-point philosophy docs/01 states
         │                                       directly (5 stated principles)
         ▼                                               │
