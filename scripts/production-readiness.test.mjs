@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -32,7 +38,8 @@ function createFixture(t, overrides = {}) {
   const environment = {
     SITE_DEPLOYMENT_ENV: "production",
     SITE_URL: productionOrigin,
-    SITE_INDEXING_ENABLED: "false",
+    SITE_PRODUCTION_BRANCH: "main",
+    SITE_INDEXING_ENABLED: overrides.indexingEnabled ? "true" : "false",
   };
   writeFileSync(
     path.join(outputDirectory, "_headers"),
@@ -43,9 +50,13 @@ function createFixture(t, overrides = {}) {
   for (const route of productionHtmlRoutes) {
     const canonical =
       route === "/" ? productionOrigin : new URL(route, productionOrigin).href;
+    const robots =
+      overrides.indexingEnabled && route !== "/search"
+        ? "index, follow"
+        : "noindex, follow";
     const page =
       overrides.html?.[route] ??
-      `<html><head><meta name="robots" content="noindex, follow"><link rel="canonical" href="${canonical}"></head><body>Page</body></html>`;
+      `<html><head><meta name="robots" content="${robots}"><link rel="canonical" href="${canonical}"></head><body>Page</body></html>`;
     htmlByRoute.set(route, page);
     const filePath =
       route === "/"
@@ -65,6 +76,8 @@ function createFixture(t, overrides = {}) {
       ]);
     } else if (asset === "/robots.txt") {
       contents = "User-Agent: *\nAllow: /\n";
+      if (overrides.indexingEnabled)
+        contents += `Sitemap: ${productionOrigin}/sitemap.xml\n`;
     } else if (asset === "/sitemap.xml") {
       contents = `<urlset>${productionHtmlRoutes
         .filter((route) => route !== "/search")
@@ -83,7 +96,11 @@ function createFixture(t, overrides = {}) {
 }
 
 function responseHeaders(overrides = {}) {
-  return new Headers({ ...requiredResponseHeaders, ...overrides });
+  return new Headers({
+    ...requiredResponseHeaders,
+    "x-robots-tag": "noindex, nofollow",
+    ...overrides,
+  });
 }
 
 test("preview and initial production headers retain security and noindex", () => {
@@ -136,6 +153,59 @@ test("only an explicitly enabled, correctly identified production build drops X-
 test("production artifact verifier accepts production URLs, headers, resources, and noindex", (t) => {
   const { outputDirectory } = createFixture(t);
   assert.deepEqual(verifyProductionArtifact(outputDirectory), []);
+});
+
+test("production artifact allows public pages and keeps search out of the index", (t) => {
+  const { outputDirectory, htmlByRoute } = createFixture(t, {
+    indexingEnabled: true,
+  });
+  const options = { indexingEnabled: true };
+  assert.deepEqual(verifyProductionArtifact(outputDirectory, options), []);
+
+  writeFileSync(
+    path.join(outputDirectory, "about.html"),
+    htmlByRoute
+      .get("/about")
+      .replace("</head>", '<meta name="googlebot" content="noindex"></head>'),
+  );
+  writeFileSync(
+    path.join(outputDirectory, "search.html"),
+    htmlByRoute.get("/search").replace("noindex", "index"),
+  );
+  const failures = verifyProductionArtifact(outputDirectory, options);
+  assert.ok(
+    failures.includes("/about: HTML googlebot metadata blocks indexing"),
+  );
+  assert.ok(
+    failures.includes("/search: HTML robots metadata is missing noindex"),
+  );
+});
+
+test("live production verification rejects a host-wide noindex header", async (t) => {
+  const { outputDirectory, htmlByRoute } = createFixture(t, {
+    indexingEnabled: true,
+  });
+  const fetchImpl = async (url) => {
+    const route = new URL(url).pathname;
+    const body =
+      htmlByRoute.get(route) ??
+      readFileSync(path.join(outputDirectory, route.slice(1)));
+    return new Response(body, { headers: requiredResponseHeaders });
+  };
+  const options = { indexingEnabled: true, fetchImpl };
+  assert.deepEqual(await verifyProductionDeployment(options), []);
+
+  const failures = await verifyProductionDeployment({
+    ...options,
+    fetchImpl: async (url) => {
+      const response = await fetchImpl(url);
+      if (new URL(url).pathname === "/") {
+        response.headers.set("X-Robots-Tag", "googlebot: noindex");
+      }
+      return response;
+    },
+  });
+  assert.ok(failures.includes("/: x-robots-tag blocks indexing"));
 });
 
 test("artifact verifier rejects missing expected HTML routes", (t) => {

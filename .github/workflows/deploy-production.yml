@@ -15,6 +15,9 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+env:
+  SITE_INDEXING_ENABLED: "true"
+
 jobs:
   confirmation:
     name: Validate production dispatch
@@ -37,14 +40,13 @@ jobs:
           fi
 
   build-production:
-    name: Build and verify noindex production artifact
+    name: Build and verify production artifact
     needs: confirmation
     runs-on: ubuntu-latest
     env:
       SITE_DEPLOYMENT_ENV: production
       SITE_URL: https://gracious.diftrak.com
       SITE_PRODUCTION_BRANCH: main
-      SITE_INDEXING_ENABLED: "false"
     steps:
       - name: Checkout confirmed commit
         uses: actions/checkout@v7
@@ -124,7 +126,7 @@ jobs:
           name: engineering-desk-production-${{ github.sha }}
           path: out/
 
-      - name: Reverify noindex production artifact
+      - name: Reverify production artifact
         run: pnpm exec node scripts/verify-pages-production.mjs --artifact-only
 
       - name: Verify production Cloudflare credentials and project
