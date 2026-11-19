@@ -35,7 +35,6 @@ export const requiredResponseHeaders = {
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-frame-options": "deny",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
-  "x-robots-tag": "noindex, nofollow",
 };
 
 function getAttribute(tag, name) {
@@ -57,12 +56,35 @@ function findCanonical(html) {
   return canonicalTag ? getAttribute(canonicalTag, "href") : undefined;
 }
 
-function findRobotsContent(html) {
+function blocksIndexing(value) {
+  return /(?:^|[\s,:])(?:noindex|none)(?=$|[\s,])/i.test(value);
+}
+
+function validateRobotsMetadata(route, html, failures, shouldBlockIndexing) {
   const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map(([tag]) => tag);
-  const robotsTag = metaTags.find(
+  const robotsTags = metaTags.filter(
     (tag) => getAttribute(tag, "name")?.toLowerCase() === "robots",
   );
-  return robotsTag ? getAttribute(robotsTag, "content") : undefined;
+  if (shouldBlockIndexing) {
+    if (
+      !robotsTags.some((tag) =>
+        blocksIndexing(getAttribute(tag, "content") ?? ""),
+      )
+    ) {
+      failures.push(`${route}: HTML robots metadata is missing noindex`);
+    }
+    return;
+  }
+
+  for (const tag of metaTags) {
+    const name = getAttribute(tag, "name")?.toLowerCase();
+    if (
+      (name === "robots" || name === "googlebot") &&
+      blocksIndexing(getAttribute(tag, "content") ?? "")
+    ) {
+      failures.push(`${route}: HTML ${name} metadata blocks indexing`);
+    }
+  }
 }
 
 function expectedExportPath(outputDirectory, route) {
@@ -220,7 +242,7 @@ function decodeXml(value) {
     .replaceAll("&apos;", "'");
 }
 
-function validateCanonicalAndRobots(route, html, failures) {
+function validateCanonical(route, html, failures) {
   const canonical = findCanonical(html);
   const expectedCanonical = new URL(route, productionOrigin);
   let canonicalMatches = false;
@@ -240,11 +262,6 @@ function validateCanonicalAndRobots(route, html, failures) {
     failures.push(
       `${route}: canonical URL must be ${expectedCanonical.href}; received ${canonical ?? "none"}`,
     );
-  }
-
-  const robots = findRobotsContent(html);
-  if (!robots || !/\bnoindex\b/i.test(robots)) {
-    failures.push(`${route}: HTML robots metadata is missing noindex`);
   }
 }
 
@@ -277,7 +294,7 @@ function parseGlobalHeaders(headersText) {
   return { foundGlobalRule, headers };
 }
 
-function validateHeaderValues(headers, label, failures) {
+function validateHeaderValues(headers, label, failures, indexingEnabled) {
   for (const [name, expected] of Object.entries(requiredResponseHeaders)) {
     const actual = headers.get(name);
     if (actual !== expected) {
@@ -286,21 +303,41 @@ function validateHeaderValues(headers, label, failures) {
       );
     }
   }
+
+  const robotsHeader = headers.get("x-robots-tag");
+  if (indexingEnabled && blocksIndexing(robotsHeader ?? "")) {
+    failures.push(`${label}: x-robots-tag blocks indexing`);
+  }
+  if (!indexingEnabled && robotsHeader !== "noindex, nofollow") {
+    failures.push(
+      `${label}: x-robots-tag must be "noindex, nofollow"; received ${robotsHeader ?? "missing"}`,
+    );
+  }
 }
 
 function validateRobotsSitemapAndRss(
-  { robots, sitemap, rss, exportedRoutes },
+  { robots, sitemap, rss, exportedRoutes, indexingEnabled },
   failures,
 ) {
-  if (/^\s*sitemap\s*:/im.test(robots)) {
+  const advertisedSitemaps = [
+    ...robots.matchAll(/^\s*sitemap:[ \t]*(\S+)[ \t]*$/gim),
+  ].map(([, url]) => url);
+  if (
+    indexingEnabled &&
+    !advertisedSitemaps.includes(`${productionOrigin}/sitemap.xml`)
+  ) {
+    failures.push("/robots.txt must advertise the production sitemap");
+  }
+  if (!indexingEnabled && advertisedSitemaps.length > 0) {
     failures.push(
       "/robots.txt must not advertise the sitemap while noindex is active",
     );
   }
-  if (!/^\s*allow\s*:\s*\/\s*$/im.test(robots)) {
-    failures.push(
-      "/robots.txt must allow crawling so crawlers can read noindex metadata",
-    );
+  if (
+    !/^\s*allow\s*:\s*\/\s*$/im.test(robots) ||
+    /^\s*disallow:[ \t]*\S/im.test(robots)
+  ) {
+    failures.push("/robots.txt must allow crawling of production pages");
   }
 
   const sitemapLocations = [...sitemap.matchAll(/<loc>(.*?)<\/loc>/gi)].map(
@@ -375,7 +412,10 @@ function readRequiredFile(outputDirectory, route, failures) {
   return contents;
 }
 
-export function verifyProductionArtifact(outputDirectory = "out") {
+export function verifyProductionArtifact(
+  outputDirectory = "out",
+  { indexingEnabled = false } = {},
+) {
   const failures = [];
   const exportedRoutes = getExportedHtmlRoutes(outputDirectory);
   const headersPath = path.join(outputDirectory, "_headers");
@@ -386,7 +426,7 @@ export function verifyProductionArtifact(outputDirectory = "out") {
       readFileSync(headersPath, "utf8"),
     );
     if (!foundGlobalRule) failures.push("out/_headers has no global /* rule");
-    validateHeaderValues(headers, "out/_headers", failures);
+    validateHeaderValues(headers, "out/_headers", failures, indexingEnabled);
   }
 
   for (const route of productionHtmlRoutes) {
@@ -403,12 +443,14 @@ export function verifyProductionArtifact(outputDirectory = "out") {
       .join("/");
     const routePath = relativePath.replace(/\.html$/, "");
     const route = routePath === "index" ? "/" : `/${routePath}`;
-    const robots = findRobotsContent(html);
-    if (!robots || !/\bnoindex\b/i.test(robots)) {
-      failures.push(
-        `${path.relative(outputDirectory, filePath)}: HTML is missing noindex metadata`,
-      );
-    }
+    const isErrorPage =
+      relativePath === "404.html" || relativePath === "_not-found.html";
+    validateRobotsMetadata(
+      route,
+      html,
+      failures,
+      !indexingEnabled || isErrorPage || route === "/search",
+    );
     if (
       /portfolio-preview\.engineering-desk-preview\.pages\.dev|localhost:3000/i.test(
         html,
@@ -418,8 +460,8 @@ export function verifyProductionArtifact(outputDirectory = "out") {
         `${path.relative(outputDirectory, filePath)}: HTML contains a preview or localhost URL`,
       );
     }
-    if (relativePath !== "404.html" && relativePath !== "_not-found.html") {
-      validateCanonicalAndRobots(route, html, failures);
+    if (!isErrorPage) {
+      validateCanonical(route, html, failures);
     }
   }
 
@@ -452,7 +494,7 @@ export function verifyProductionArtifact(outputDirectory = "out") {
   const sitemap = readRequiredFile(outputDirectory, "/sitemap.xml", failures);
   const rss = readRequiredFile(outputDirectory, "/rss.xml", failures);
   validateRobotsSitemapAndRss(
-    { robots, sitemap, rss, exportedRoutes },
+    { robots, sitemap, rss, exportedRoutes, indexingEnabled },
     failures,
   );
 
@@ -464,6 +506,7 @@ export async function verifyProductionDeployment({
   routes = productionHtmlRoutes,
   assets = productionAssets,
   fetchImpl = fetch,
+  indexingEnabled = false,
 } = {}) {
   const failures = [];
   const requestOrigin = new URL(baseUrl).origin;
@@ -486,16 +529,13 @@ export async function verifyProductionDeployment({
       }
 
       const responseHeaders = new Map(
-        Object.entries(requiredResponseHeaders).map(([name]) => [
-          name,
-          response.headers.get(name)?.trim().toLowerCase(),
-        ]),
+        [...Object.keys(requiredResponseHeaders), "x-robots-tag"].map(
+          (name) => [name, response.headers.get(name)?.trim().toLowerCase()],
+        ),
       );
-      validateHeaderValues(responseHeaders, route, failures);
+      validateHeaderValues(responseHeaders, route, failures, indexingEnabled);
       responses.set(route, response);
-      console.log(
-        `PASS ${route} HTTP 200; security and noindex headers present`,
-      );
+      console.log(`Fetched ${route} (HTTP 200)`);
     } catch (error) {
       failures.push(`${route}: ${error.message}`);
     }
@@ -504,7 +544,14 @@ export async function verifyProductionDeployment({
   for (const route of routes) {
     const response = responses.get(route);
     if (!response) continue;
-    validateCanonicalAndRobots(route, await response.text(), failures);
+    const html = await response.text();
+    validateCanonical(route, html, failures);
+    validateRobotsMetadata(
+      route,
+      html,
+      failures,
+      !indexingEnabled || route === "/search",
+    );
   }
 
   const searchIndexResponse = responses.get("/search-index.json");
@@ -527,7 +574,7 @@ export async function verifyProductionDeployment({
     responseText("/rss.xml"),
   ]);
   validateRobotsSitemapAndRss(
-    { robots, sitemap, rss, exportedRoutes: routes },
+    { robots, sitemap, rss, exportedRoutes: routes, indexingEnabled },
     failures,
   );
 
@@ -545,15 +592,15 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
 ) {
-  const artifactFailures = verifyProductionArtifact("out");
+  const indexingEnabled = process.env.SITE_INDEXING_ENABLED === "true";
+  const artifactFailures = verifyProductionArtifact("out", { indexingEnabled });
   if (reportFailures(artifactFailures)) {
     process.exitCode = 1;
   } else if (process.argv.includes("--artifact-only")) {
-    console.log(
-      "Production static artifact verified; indexing remains disabled.",
-    );
+    console.log("Production static artifact and indexing directives verified.");
   } else {
     const deploymentFailures = await verifyProductionDeployment({
+      indexingEnabled,
       baseUrl: process.env.PRODUCTION_VERIFY_BASE_URL ?? productionOrigin,
       routes: getExportedHtmlRoutes("out"),
       assets: [...productionAssets, ...discoverLocalAssets("out")],
@@ -562,7 +609,7 @@ if (
       process.exitCode = 1;
     } else {
       console.log(
-        `Verified ${getExportedHtmlRoutes("out").length} production routes, runtime assets, security headers, sitemap, RSS, and noindex safeguards.`,
+        `Verified ${getExportedHtmlRoutes("out").length} production routes, runtime assets, security headers, sitemap, RSS, and indexing directives.`,
       );
     }
   }

@@ -58,7 +58,7 @@ production artifact for the selected commit with:
 SITE_DEPLOYMENT_ENV=production
 SITE_URL=https://gracious.diftrak.com
 SITE_PRODUCTION_BRANCH=main
-SITE_INDEXING_ENABLED=false
+SITE_INDEXING_ENABLED=true
 ```
 
 The build verifies this artifact before upload. Only after it passes does the
@@ -67,7 +67,7 @@ Production secrets are available only to that approved deployment job. The
 job downloads and rechecks the artifact, verifies the Cloudflare account and
 project, then deploys `out/` to project `engineering-desk`, branch `main`.
 It runs live route, asset, metadata, feed, sitemap, security-header, and
-noindex checks against `https://gracious.diftrak.com` afterward. The artifact
+indexing checks against `https://gracious.diftrak.com` afterward. The artifact
 check compares required production routes with exported HTML and requires the
 sitemap routes to match exported HTML routes, excluding the intentionally
 omitted `/search` page. It discovers local runtime assets from HTML and linked
@@ -82,12 +82,12 @@ through the existing preview workflow.
 
 ## Indexing and response headers
 
-The production workflow hardcodes `SITE_INDEXING_ENABLED=false`; it has no
-input that can enable indexing. Production HTML metadata and the global
-Cloudflare `X-Robots-Tag` header both remain noindex. `robots.txt` allows
-crawling so crawlers can see each page's noindex metadata, but it does not
-advertise the sitemap while noindex is active. The sitemap and RSS are still
-generated with the production origin.
+The production workflow enables indexing for the public portfolio pages at
+`https://gracious.diftrak.com`. The build and live checks reject index-blocking
+HTML metadata or a response header on public pages and require `robots.txt` to
+advertise the production sitemap. The internal `/search` page retains its
+`noindex` metadata and stays out of the sitemap. Preview builds retain
+`noindex`.
 
 `scripts/write-pages-headers.mjs` emits these global Pages headers for
 production and preview exports:
@@ -105,11 +105,6 @@ Security Policy is also intentionally deferred until the static Next.js
 bootstrap and structured-data scripts have been evaluated against a tested
 policy.
 
-Do not enable search indexing as part of the initial deployment. After the
-custom domain, HTTPS, routes, metadata, and headers have been verified, a
-separate reviewed change and explicit deployment approval are required to
-enable indexing.
-
 ## Rollback
 
 If live verification fails or the deployed site has a production issue, use
@@ -122,7 +117,7 @@ deployment:
 3. From that production deployment's three-dot menu, choose **Rollback to this
    deployment** and confirm the action.
 4. Re-run the production route, asset, security-header, sitemap, feed, and
-   noindex checks against `https://gracious.diftrak.com`.
+   indexing checks against `https://gracious.diftrak.com` using the restored release’s expected indexing setting.
 
 Cloudflare Pages only permits successful production deployments as rollback
 targets; preview deployments are not valid targets. The workflow does not
